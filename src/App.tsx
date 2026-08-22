@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
-type AuthState = "loading" | "login" | "changePassword" | "authenticated";
+type AuthState =
+  | "loading"
+  | "login"
+  | "forgotPassword"
+  | "resendVerification"
+  | "resetPassword"
+  | "changePassword"
+  | "authenticated";
 
 export default function App() {
   const [authState, setAuthState] = useState<AuthState>("loading");
@@ -16,14 +23,26 @@ export default function App() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [resendEmail, setResendEmail] = useState("");
+
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const isRecovery = window.location.hash.includes("type=recovery");
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSession(session);
-        checkUser(session.user.id);
+        if (isRecovery) {
+          setAuthState("resetPassword");
+          // Clean the URL to avoid re-triggering
+          window.history.replaceState(null, "", window.location.pathname);
+        } else {
+          checkUser(session.user.id);
+        }
       } else {
         setAuthState("login");
       }
@@ -66,6 +85,75 @@ export default function App() {
 
     setSession(data.session);
     await checkUser(data.session.user.id);
+    setLoading(false);
+  }
+
+  async function handleForgotPassword() {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail, {
+      redirectTo: "http://localhost:5173/",
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess("Password reset email sent. Check your inbox.");
+    }
+    setLoading(false);
+  }
+
+  async function handleResendVerification() {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: resendEmail,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess("Verification email resent. Check your inbox.");
+    }
+    setLoading(false);
+  }
+
+  async function handleResetPassword() {
+    setError("");
+    setSuccess("");
+    if (newPassword.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      setError(updateError.message);
+      setLoading(false);
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setSession(null);
+    setAuthState("login");
+    setNewPassword("");
+    setConfirmPassword("");
+    setError("");
+    setSuccess("Password reset successfully. Please sign in with your new password.");
     setLoading(false);
   }
 
@@ -116,7 +204,11 @@ export default function App() {
     setLoginPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    setError("");
+    setSuccess("");
   }
+
+  // ================= RENDER =================
 
   if (authState === "loading") {
     return (
@@ -132,6 +224,7 @@ export default function App() {
         <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
           <h1 className="text-xl font-semibold">Sign in to Dayflow</h1>
           {error && <p className="text-sm text-red-500">{error}</p>}
+          {success && <p className="text-sm text-green-600">{success}</p>}
           <input
             className="w-full rounded border px-3 py-2"
             placeholder="Email"
@@ -148,6 +241,131 @@ export default function App() {
           />
           <Button className="w-full" onClick={handleLogin} disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
+          </Button>
+
+          <div className="flex flex-col gap-1 text-sm">
+            <button
+              type="button"
+              className="text-left text-blue-600 hover:underline"
+              onClick={() => {
+                setAuthState("forgotPassword");
+                setError("");
+                setSuccess("");
+              }}
+            >
+              Forgot password?
+            </button>
+            <button
+              type="button"
+              className="text-left text-blue-600 hover:underline"
+              onClick={() => {
+                setAuthState("resendVerification");
+                setError("");
+                setSuccess("");
+              }}
+            >
+              Resend verification email
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (authState === "forgotPassword") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
+        <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
+          <h1 className="text-xl font-semibold">Reset password</h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your account email to receive a password reset link.
+          </p>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          {success && <p className="text-sm text-green-600">{success}</p>}
+          <input
+            className="w-full rounded border px-3 py-2"
+            placeholder="Email"
+            type="email"
+            value={recoveryEmail}
+            onChange={(e) => setRecoveryEmail(e.target.value)}
+          />
+          <Button className="w-full" onClick={handleForgotPassword} disabled={loading}>
+            {loading ? "Sending…" : "Send reset email"}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setAuthState("login");
+              setError("");
+              setSuccess("");
+            }}
+          >
+            Back to sign in
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (authState === "resendVerification") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
+        <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
+          <h1 className="text-xl font-semibold">Resend verification email</h1>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          {success && <p className="text-sm text-green-600">{success}</p>}
+          <input
+            className="w-full rounded border px-3 py-2"
+            placeholder="Email"
+            type="email"
+            value={resendEmail}
+            onChange={(e) => setResendEmail(e.target.value)}
+          />
+          <Button className="w-full" onClick={handleResendVerification} disabled={loading}>
+            {loading ? "Sending…" : "Resend verification"}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setAuthState("login");
+              setError("");
+              setSuccess("");
+            }}
+          >
+            Back to sign in
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (authState === "resetPassword") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
+        <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
+          <h1 className="text-xl font-semibold">Set a new password</h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your new password below.
+          </p>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <input
+            className="w-full rounded border px-3 py-2"
+            placeholder="New password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <input
+            className="w-full rounded border px-3 py-2"
+            placeholder="Confirm new password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+          <Button className="w-full" onClick={handleResetPassword} disabled={loading}>
+            {loading ? "Updating…" : "Update password"}
           </Button>
         </div>
       </main>
