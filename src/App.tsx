@@ -5,6 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/lib/status";
+import {
+  PAID_LEAVE_ANNUAL_DAYS,
+  SICK_LEAVE_ANNUAL_DAYS,
+  formatLeaveDays,
+} from "@/lib/leave";
 
 type AuthState =
   | "loading"
@@ -73,6 +78,12 @@ export default function App() {
   const [salaryError, setSalaryError] = useState("");
   const [salarySuccess, setSalarySuccess] = useState("");
   const [salaryPreview, setSalaryPreview] = useState<any>(null);
+
+  // Leave balance states (employee Time Off)
+  const [paidLeaveUsed, setPaidLeaveUsed] = useState(0);
+  const [sickLeaveUsed, setSickLeaveUsed] = useState(0);
+  const [leaveBalanceLoading, setLeaveBalanceLoading] = useState(false);
+  const [leaveBalanceError, setLeaveBalanceError] = useState("");
 
   const manualLogoutRef = useRef(false);
 
@@ -163,6 +174,14 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authState, session]);
+
+  // Load leave balances (employee Time Off)
+  useEffect(() => {
+    if (authState === "authenticated" && session && role === "employee") {
+      loadLeaveBalances();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authState, session, role]);
 
   async function checkUser(userId: string) {
     const { data, error } = await supabase
@@ -675,6 +694,42 @@ export default function App() {
         {renderSalaryComponents(salaryData)}
       </div>
     );
+  }
+
+  async function loadLeaveBalances() {
+    if (!session) return;
+    setLeaveBalanceLoading(true);
+    setLeaveBalanceError("");
+
+    const year = new Date().getFullYear();
+    const yearStart = `${year}-01-01`;
+    const yearEnd = `${year}-12-31`;
+
+    const { data, error } = await supabase
+      .from("leave_requests")
+      .select("leave_type, allocation_days")
+      .eq("user_id", session.user.id)
+      .eq("status", "approved")
+      .gte("start_date", yearStart)
+      .lte("start_date", yearEnd);
+
+    if (error) {
+      setLeaveBalanceError(error.message);
+      setLeaveBalanceLoading(false);
+      return;
+    }
+
+    let paidUsed = 0;
+    let sickUsed = 0;
+    (data || []).forEach((row: { leave_type: string; allocation_days: number | string }) => {
+      const days = Number(row.allocation_days) || 0;
+      if (row.leave_type === "paid") paidUsed += days;
+      if (row.leave_type === "sick") sickUsed += days;
+    });
+
+    setPaidLeaveUsed(paidUsed);
+    setSickLeaveUsed(sickUsed);
+    setLeaveBalanceLoading(false);
   }
 
   function renderProfileTabContent() {
@@ -1329,6 +1384,54 @@ export default function App() {
             Details are in Profile &gt; Salary Info.
           </p>
         </Card>
+
+        {/* Employee Time Off balances */}
+        {role === "employee" && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Time Off</h2>
+            {leaveBalanceError && (
+              <p className="text-sm text-red-500">{leaveBalanceError}</p>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Card className="p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-medium">Paid Time Off</p>
+                  <Badge className={getStatusBadgeClass("leave")}>Paid</Badge>
+                </div>
+                {leaveBalanceLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading balance…</p>
+                ) : (
+                  <>
+                    <p className="text-sm">
+                      Paid Time Off — {formatLeaveDays(Math.max(0, PAID_LEAVE_ANNUAL_DAYS - paidLeaveUsed))} days available
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatLeaveDays(paidLeaveUsed)} of {PAID_LEAVE_ANNUAL_DAYS} days used this year
+                    </p>
+                  </>
+                )}
+              </Card>
+              <Card className="p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-medium">Sick Time Off</p>
+                  <Badge className={getStatusBadgeClass("pending")}>Sick</Badge>
+                </div>
+                {leaveBalanceLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading balance…</p>
+                ) : (
+                  <>
+                    <p className="text-sm">
+                      Sick Time Off — {formatLeaveDays(Math.max(0, SICK_LEAVE_ANNUAL_DAYS - sickLeaveUsed))} days available
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatLeaveDays(sickLeaveUsed)} of {SICK_LEAVE_ANNUAL_DAYS} days used this year
+                    </p>
+                  </>
+                )}
+              </Card>
+            </div>
+          </div>
+        )}
 
         {/* Employee monthly attendance list */}
         {role === "employee" && (
