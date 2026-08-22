@@ -8,7 +8,11 @@ import { getStatusBadgeClass } from "@/lib/status";
 import {
   PAID_LEAVE_ANNUAL_DAYS,
   SICK_LEAVE_ANNUAL_DAYS,
+  LEAVE_ATTACHMENTS_BUCKET,
+  LEAVE_TYPE_LABELS,
   formatLeaveDays,
+  inclusiveLeaveDays,
+  datesOverlap,
 } from "@/lib/leave";
 
 type AuthState =
@@ -84,8 +88,21 @@ export default function App() {
   const [sickLeaveUsed, setSickLeaveUsed] = useState(0);
   const [leaveBalanceLoading, setLeaveBalanceLoading] = useState(false);
   const [leaveBalanceError, setLeaveBalanceError] = useState("");
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [leaveSubmitting, setLeaveSubmitting] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({
+    leave_type: "paid",
+    start_date: "",
+    end_date: "",
+    allocation_days: "",
+  });
+  const [leaveAttachmentFile, setLeaveAttachmentFile] = useState<File | null>(null);
+  const [leaveFormErrors, setLeaveFormErrors] = useState<Record<string, string>>({});
+  const [employeeLeaveRequests, setEmployeeLeaveRequests] = useState<any[]>([]);
+  const [leaveToast, setLeaveToast] = useState("");
 
   const manualLogoutRef = useRef(false);
+  const leaveToastTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const isRecovery = window.location.hash.includes("type=recovery");
@@ -179,6 +196,7 @@ export default function App() {
   useEffect(() => {
     if (authState === "authenticated" && session && role === "employee") {
       loadLeaveBalances();
+      loadEmployeeLeaveRequests();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authState, session, role]);
@@ -730,6 +748,188 @@ export default function App() {
     setPaidLeaveUsed(paidUsed);
     setSickLeaveUsed(sickUsed);
     setLeaveBalanceLoading(false);
+  }
+
+  async function loadEmployeeLeaveRequests() {
+    if (!session) return;
+    const { data, error } = await supabase
+      .from("leave_requests")
+      .select("id, leave_type, start_date, end_date, allocation_days, status, created_at")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error) {
+      setEmployeeLeaveRequests(data || []);
+    }
+  }
+
+  function showLeaveToast(message: string) {
+    setLeaveToast(message);
+    if (leaveToastTimerRef.current) {
+      window.clearTimeout(leaveToastTimerRef.current);
+    }
+    leaveToastTimerRef.current = window.setTimeout(() => {
+      setLeaveToast("");
+      leaveToastTimerRef.current = null;
+    }, 4000);
+  }
+
+  function resetLeaveForm() {
+    setLeaveForm({
+      leave_type: "paid",
+      start_date: "",
+      end_date: "",
+      allocation_days: "",
+    });
+    setLeaveAttachmentFile(null);
+    setLeaveFormErrors({});
+  }
+
+  function openLeaveModal() {
+    resetLeaveForm();
+    setLeaveModalOpen(true);
+  }
+
+  function discardLeaveModal() {
+    if (leaveSubmitting) return;
+    setLeaveModalOpen(false);
+    resetLeaveForm();
+  }
+
+  function handleLeaveFormChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    const { name, value } = e.target;
+    setLeaveForm((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === "start_date" || name === "end_date") {
+        const days = inclusiveLeaveDays(
+          name === "start_date" ? value : prev.start_date,
+          name === "end_date" ? value : prev.end_date
+        );
+        if (days !== null) {
+          next.allocation_days = String(days);
+        }
+      }
+      return next;
+    });
+    setLeaveFormErrors((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      delete next.dates;
+      delete next.overlap;
+      if (name === "leave_type") delete next.attachment;
+      return next;
+    });
+  }
+
+  function handleLeaveAttachmentChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setLeaveAttachmentFile(file);
+    setLeaveFormErrors((prev) => {
+      const next = { ...prev };
+      delete next.attachment;
+      return next;
+    });
+  }
+
+  async function submitLeaveRequest() {
+    if (!session || leaveSubmitting) return;
+    setLeaveSubmitting(true);
+    setLeaveFormErrors({});
+
+    const errors: Record<string, string> = {};
+    const { leave_type, start_date, end_date, allocation_days } = leaveForm;
+
+    if (!start_date) errors.start_date = "Start date is required.";
+    if (!end_date) errors.end_date = "End date is required.";
+    if (start_date && end_date && end_date < start_date) {
+      errors.dates = "End date must not be before start date.";
+    }
+
+    const allocation = Number(allocation_days);
+    if (!allocation_days || Number.isNaN(allocation) || allocation <= 0) {
+      errors.allocation_days = "Allocation must be a number greater than 0.";
+    }
+
+    if (leave_type === "sick" && !leaveAttachmentFile) {
+      errors.attachment = "An attachment is required for Sick Leave.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setLeaveFormErrors(errors);
+      setLeaveSubmitting(false);
+      return;
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from("leave_requests")
+      .select("id, start_date, end_date, status")
+      .eq("user_id", session.user.id)
+      .in("status", ["pending", "approved"]);
+
+    if (existingError) {
+      setLeaveFormErrors({ submit: existingError.message });
+      setLeaveSubmitting(false);
+      return;
+    }
+
+    const hasOverlap = (existing || []).some((row: { start_date: string; end_date: string }) =>
+      datesOverlap(start_date, end_date, row.start_date, row.end_date)
+    );
+    if (hasOverlap) {
+      setLeaveFormErrors({
+        overlap: "This date range overlaps an existing pending or approved leave request.",
+      });
+      setLeaveSubmitting(false);
+      return;
+    }
+
+    let attachmentUrl: string | null = null;
+    if (leaveAttachmentFile) {
+      const safeName = leaveAttachmentFile.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${session.user.id}/${crypto.randomUUID()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from(LEAVE_ATTACHMENTS_BUCKET)
+        .upload(path, leaveAttachmentFile);
+
+      if (uploadError) {
+        setLeaveFormErrors({
+          attachment: `Could not upload attachment: ${uploadError.message}. If this persists, run supabase/leave_storage.sql in the SQL editor.`,
+        });
+        setLeaveSubmitting(false);
+        return;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from(LEAVE_ATTACHMENTS_BUCKET)
+        .getPublicUrl(path);
+      attachmentUrl = publicData.publicUrl;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("leave_requests")
+      .insert({
+        user_id: session.user.id,
+        leave_type,
+        start_date,
+        end_date,
+        allocation_days: allocation,
+        attachment_url: attachmentUrl,
+      })
+      .select("id, leave_type, start_date, end_date, allocation_days, status, created_at")
+      .single();
+
+    if (insertError) {
+      setLeaveFormErrors({ submit: insertError.message });
+      setLeaveSubmitting(false);
+      return;
+    }
+
+    setEmployeeLeaveRequests((prev) => [inserted, ...prev.filter((r) => r.id !== inserted.id)]);
+    await loadLeaveBalances();
+    setLeaveSubmitting(false);
+    setLeaveModalOpen(false);
+    resetLeaveForm();
+    showLeaveToast("Leave request submitted. Status: Pending");
   }
 
   function renderProfileTabContent() {
@@ -1388,7 +1588,12 @@ export default function App() {
         {/* Employee Time Off balances */}
         {role === "employee" && (
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Time Off</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Time Off</h2>
+              <Button size="sm" onClick={openLeaveModal}>
+                Apply for Leave
+              </Button>
+            </div>
             {leaveBalanceError && (
               <p className="text-sm text-red-500">{leaveBalanceError}</p>
             )}
@@ -1430,6 +1635,28 @@ export default function App() {
                 )}
               </Card>
             </div>
+            {employeeLeaveRequests.length > 0 && (
+              <Card className="p-4">
+                <h3 className="mb-2 text-sm font-medium">Submitted requests</h3>
+                <div className="space-y-2">
+                  {employeeLeaveRequests.map((req) => (
+                    <div key={req.id} className="flex items-center justify-between rounded border p-2">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {LEAVE_TYPE_LABELS[req.leave_type] || req.leave_type}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {req.start_date} → {req.end_date}
+                        </p>
+                      </div>
+                      <Badge className={getStatusBadgeClass(req.status)}>
+                        {req.status === "pending" ? "Pending" : req.status === "approved" ? "Approved" : req.status === "rejected" ? "Rejected" : req.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
@@ -1560,6 +1787,142 @@ export default function App() {
           <Button variant="outline" onClick={handleLogout}>Log out</Button>
         </Card>
       </div>
+
+      {leaveToast && (
+        <div className="fixed right-4 top-4 z-50 rounded-lg border bg-green-50 px-4 py-2 text-sm text-green-800 shadow">
+          {leaveToast}
+        </div>
+      )}
+
+      {leaveModalOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <Card className="w-full max-w-md p-4">
+            <h2 className="mb-3 text-sm font-semibold">Apply for Leave</h2>
+            <div className="space-y-3">
+              <div>
+                <p className="mb-1 text-sm font-medium">Employee</p>
+                <Input
+                  readOnly
+                  value={profileData?.full_name || session?.user?.email || ""}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium" htmlFor="leave_type">Time Off Type</label>
+                <select
+                  id="leave_type"
+                  name="leave_type"
+                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  value={leaveForm.leave_type}
+                  onChange={handleLeaveFormChange}
+                  disabled={leaveSubmitting}
+                >
+                  <option value="paid">Paid Time Off</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="unpaid">Unpaid Leave</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium" htmlFor="start_date">Start date</label>
+                  <Input
+                    id="start_date"
+                    name="start_date"
+                    type="date"
+                    value={leaveForm.start_date}
+                    onChange={handleLeaveFormChange}
+                    disabled={leaveSubmitting}
+                  />
+                  {leaveFormErrors.start_date && (
+                    <p className="mt-1 text-xs text-red-500">{leaveFormErrors.start_date}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium" htmlFor="end_date">End date</label>
+                  <Input
+                    id="end_date"
+                    name="end_date"
+                    type="date"
+                    value={leaveForm.end_date}
+                    onChange={handleLeaveFormChange}
+                    disabled={leaveSubmitting}
+                  />
+                  {leaveFormErrors.end_date && (
+                    <p className="mt-1 text-xs text-red-500">{leaveFormErrors.end_date}</p>
+                  )}
+                </div>
+              </div>
+              {leaveFormErrors.dates && (
+                <p className="text-xs text-red-500">{leaveFormErrors.dates}</p>
+              )}
+              {leaveFormErrors.overlap && (
+                <p className="text-xs text-red-500">{leaveFormErrors.overlap}</p>
+              )}
+              <div>
+                <label className="mb-1 block text-sm font-medium" htmlFor="allocation_days">Allocation (days)</label>
+                <Input
+                  id="allocation_days"
+                  name="allocation_days"
+                  type="number"
+                  step="0.5"
+                  min="0.5"
+                  value={leaveForm.allocation_days}
+                  onChange={handleLeaveFormChange}
+                  disabled={leaveSubmitting}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Auto-filled from the date range (inclusive). Edit for half-days.
+                </p>
+                {leaveFormErrors.allocation_days && (
+                  <p className="mt-1 text-xs text-red-500">{leaveFormErrors.allocation_days}</p>
+                )}
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium" htmlFor="leave_attachment">
+                  Attachment {leaveForm.leave_type === "sick" ? "(required for Sick Leave)" : "(optional)"}
+                </label>
+                <input
+                  id="leave_attachment"
+                  key={leaveModalOpen ? "leave-file" : "leave-file-closed"}
+                  type="file"
+                  className="block w-full text-sm"
+                  onChange={handleLeaveAttachmentChange}
+                  disabled={leaveSubmitting}
+                />
+                {leaveFormErrors.attachment && (
+                  <p className="mt-1 text-xs text-red-500">{leaveFormErrors.attachment}</p>
+                )}
+              </div>
+              {leaveFormErrors.submit && (
+                <p className="text-xs text-red-500">{leaveFormErrors.submit}</p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={discardLeaveModal}
+                  disabled={leaveSubmitting}
+                >
+                  Discard
+                </Button>
+                <Button
+                  type="button"
+                  onClick={submitLeaveRequest}
+                  disabled={leaveSubmitting}
+                >
+                  {leaveSubmitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Submitting…
+                    </span>
+                  ) : (
+                    "Submit"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </main>
   );
 }
