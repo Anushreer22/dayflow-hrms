@@ -17,6 +17,51 @@ type AuthState =
 
 type NavKey = "dashboard" | "attendance" | "profile" | "leave" | "notifications";
 
+/* ---------- Reusable UI helpers ---------- */
+function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded bg-gray-200 dark:bg-gray-800 ${className}`} />;
+}
+
+function EmptyState({
+  icon,
+  message,
+  actionLabel,
+  onAction,
+}: {
+  icon: string;
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <span className="text-4xl">{icon}</span>
+      <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+      {actionLabel && onAction && (
+        <Button variant="outline" className="mt-4" onClick={onAction}>
+          {actionLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <p className="text-sm text-red-500" role="alert" aria-live="assertive">
+      Something went wrong: {message}
+    </p>
+  );
+}
+
+function SuccessMessage({ message }: { message: string }) {
+  return (
+    <p className="text-sm text-green-600" role="status" aria-live="polite">
+      {message}
+    </p>
+  );
+}
+
 export default function App() {
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [session, setSession] = useState<any>(null);
@@ -684,7 +729,7 @@ export default function App() {
 
   function renderProfileTabContent() {
     if (!profileData) {
-      return <p className="text-sm text-muted-foreground">No profile found.</p>;
+      return <EmptyState icon="👤" message="No profile data found." />;
     }
 
     switch (activeProfileTab) {
@@ -1076,7 +1121,7 @@ export default function App() {
   if (authState === "loading") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        <p>Loading…</p>
+        <Skeleton className="h-8 w-32" />
       </main>
     );
   }
@@ -1087,21 +1132,21 @@ export default function App() {
         <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
           <h1 className="text-xl font-semibold">Sign in to Dayflow</h1>
           {sessionExpired && (
-            <p className="text-sm rounded bg-yellow-100 p-2 text-yellow-800">
+            <p className="text-sm rounded bg-yellow-100 p-2 text-yellow-800" role="alert">
               Your session has expired. Please sign in again.
             </p>
           )}
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
+          {error && <ErrorMessage message={error} />}
+          {success && <SuccessMessage message={success} />}
           <input
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             placeholder="Email"
             type="email"
             value={loginEmail}
             onChange={(e) => setLoginEmail(e.target.value)}
           />
           <input
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             placeholder="Password"
             type="password"
             value={loginPassword}
@@ -1114,7 +1159,7 @@ export default function App() {
           <div className="flex flex-col gap-1 text-sm">
             <button
               type="button"
-              className="text-left text-blue-600 hover:underline"
+              className="text-left text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => {
                 setAuthState("forgotPassword");
                 setError("");
@@ -1125,7 +1170,7 @@ export default function App() {
             </button>
             <button
               type="button"
-              className="text-left text-blue-600 hover:underline"
+              className="text-left text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => {
                 setAuthState("resendVerification");
                 setError("");
@@ -1150,31 +1195,31 @@ export default function App() {
             {authState === "resetPassword" && "Set a new password"}
             {authState === "changePassword" && "Change your password"}
           </h1>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
+          {error && <ErrorMessage message={error} />}
+          {success && <SuccessMessage message={success} />}
           {authState === "forgotPassword" && (
             <>
-              <input className="w-full rounded border px-3 py-2" placeholder="Email" type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} />
+              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Email" type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} />
               <Button className="w-full" onClick={handleForgotPassword} disabled={loading}>{loading ? "Sending…" : "Send reset email"}</Button>
             </>
           )}
           {authState === "resendVerification" && (
             <>
-              <input className="w-full rounded border px-3 py-2" placeholder="Email" type="email" value={resendEmail} onChange={(e) => setResendEmail(e.target.value)} />
+              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Email" type="email" value={resendEmail} onChange={(e) => setResendEmail(e.target.value)} />
               <Button className="w-full" onClick={handleResendVerification} disabled={loading}>{loading ? "Sending…" : "Resend verification"}</Button>
             </>
           )}
           {authState === "resetPassword" && (
             <>
-              <input className="w-full rounded border px-3 py-2" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              <input className="w-full rounded border px-3 py-2" placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
               <Button className="w-full" onClick={handleResetPassword} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
             </>
           )}
           {authState === "changePassword" && (
             <>
-              <input className="w-full rounded border px-3 py-2" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              <input className="w-full rounded border px-3 py-2" placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
               <Button className="w-full" onClick={handlePasswordChange} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
               <Button variant="outline" className="w-full" onClick={handleLogout}>Log out</Button>
             </>
@@ -1187,7 +1232,7 @@ export default function App() {
 
   // Authenticated view with navigation
   return (
-    <main className="min-h-screen bg-background text-foreground p-6">
+    <main className="min-h-screen bg-background text-foreground p-6 max-w-7xl mx-auto">
       {/* Top nav */}
       <div className="mb-6 flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-semibold">Dayflow</h1>
@@ -1208,7 +1253,13 @@ export default function App() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">{getGreeting()}</h2>
 
-          {role === "employee" && empDashboardData ? (
+          {dashboardLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+            </div>
+          ) : role === "employee" && empDashboardData ? (
             <>
               <Card className="p-4">
                 <h3 className="mb-2 text-sm font-semibold">Quick Check-In</h3>
@@ -1265,9 +1316,9 @@ export default function App() {
               <Card className="p-4">
                 <h3 className="mb-2 text-sm font-semibold">Employee Status Today</h3>
                 {dashboardLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading…</p>
+                  <Skeleton className="h-24" />
                 ) : adminDashboardData.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No employees found.</p>
+                  <EmptyState icon="👥" message="No employees found." />
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {adminDashboardData.map((emp: any) => (
@@ -1287,7 +1338,7 @@ export default function App() {
               <Card className="p-4">
                 <h3 className="mb-2 text-sm font-semibold">Pending Approvals</h3>
                 {leaveList.filter((l) => l.status === "pending").length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No pending leave requests.</p>
+                  <EmptyState icon="📝" message="No pending leave requests." />
                 ) : (
                   <div className="space-y-2">
                     {leaveList.filter((l) => l.status === "pending").slice(0,5).map((leave) => (
@@ -1331,6 +1382,10 @@ export default function App() {
                 <Button onClick={handleCheckOut} disabled={checkOutLoading}>{checkOutLoading ? "Checking out…" : "Check Out"}</Button>
               </div>
             )}
+            {checkInError && <ErrorMessage message={checkInError} />}
+            {checkInMessage && <SuccessMessage message={checkInMessage} />}
+            {checkOutError && <ErrorMessage message={checkOutError} />}
+            {checkOutMessage && <SuccessMessage message={checkOutMessage} />}
           </Card>
 
           {role === "employee" && (
@@ -1344,11 +1399,15 @@ export default function App() {
                 </div>
               </div>
               {attendanceListLoading ? (
-                <p>Loading…</p>
+                <div className="space-y-2">
+                  <Skeleton className="h-12" />
+                  <Skeleton className="h-12" />
+                  <Skeleton className="h-12" />
+                </div>
               ) : attendanceListError ? (
-                <p className="text-red-500">{attendanceListError}</p>
+                <ErrorMessage message={attendanceListError} />
               ) : attendanceList.length === 0 ? (
-                <p>No attendance records.</p>
+                <EmptyState icon="🗓️" message="No attendance records for this month." actionLabel="Check In" onAction={handleCheckIn} />
               ) : (
                 <div className="space-y-2">
                   {attendanceList.map((record) => (
@@ -1373,11 +1432,11 @@ export default function App() {
               <Card className="p-4">
                 <h3 className="mb-3 text-sm font-semibold">Today's Attendance (All Employees)</h3>
                 {adminLoading ? (
-                  <p>Loading…</p>
+                  <Skeleton className="h-24" />
                 ) : adminError ? (
-                  <p className="text-red-500">{adminError}</p>
+                  <ErrorMessage message={adminError} />
                 ) : adminTodayList.length === 0 ? (
-                  <p>No attendance records yet today.</p>
+                  <EmptyState icon="👥" message="No attendance records yet today." />
                 ) : (
                   <div className="space-y-2">
                     {adminTodayList.map((record) => (
@@ -1397,9 +1456,11 @@ export default function App() {
               </Card>
               <Card className="p-4">
                 <h3 className="mb-3 text-sm font-semibold">Monthly Summary ({attendanceMonth})</h3>
-                {adminMonthSummary ? (
+                {adminLoading ? (
+                  <Skeleton className="h-16" />
+                ) : adminMonthSummary ? (
                   <div className="flex flex-wrap gap-4">
-                    {Object.entries(adminMonthSummary).map(([status, count]) => (
+                    {Object.entries(adminMonthSummary as Record<string, number>).map(([status, count]: [string, number]) => (
                       <div key={status} className="flex items-center gap-2">
                         <Badge className={getStatusBadgeClass(status)}>{status}</Badge>
                         <span>{count}</span>
@@ -1407,7 +1468,7 @@ export default function App() {
                     ))}
                   </div>
                 ) : (
-                  <p>No summary available.</p>
+                  <EmptyState icon="📊" message="No summary available for this month." />
                 )}
               </Card>
             </>
@@ -1430,8 +1491,8 @@ export default function App() {
                 </div>
               )}
             </div>
-            {profileError && <p className="text-red-500">{profileError}</p>}
-            {profileSuccess && <p className="text-green-600">{profileSuccess}</p>}
+            {profileError && <ErrorMessage message={profileError} />}
+            {profileSuccess && <SuccessMessage message={profileSuccess} />}
             <div className="mb-3 flex flex-wrap gap-1">
               {[
                 { key: "myProfile", label: "My Profile" },
@@ -1493,8 +1554,8 @@ export default function App() {
                 <Input name="effective_from" type="date" value={salaryForm.effective_from} onChange={(e) => setSalaryForm({...salaryForm, effective_from: e.target.value})} />
                 <Button onClick={calculateSalaryPreview}>Calculate Preview</Button>
                 <Button onClick={saveSalary} disabled={salarySaving}>{salarySaving ? "Saving…" : "Save"}</Button>
-                {salaryError && <p className="text-red-500">{salaryError}</p>}
-                {salarySuccess && <p className="text-green-600">{salarySuccess}</p>}
+                {salaryError && <ErrorMessage message={salaryError} />}
+                {salarySuccess && <SuccessMessage message={salarySuccess} />}
                 {salaryPreview && (
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <span>Basic: {salaryPreview.basic}</span>
@@ -1531,7 +1592,7 @@ export default function App() {
           <Card className="p-4">
             <h3 className="mb-3 text-sm font-semibold">Apply for Leave</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <select className="border rounded px-3 py-2" value={leaveForm.leave_type} onChange={(e) => setLeaveForm({...leaveForm, leave_type: e.target.value})}>
+              <select className="border rounded px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" value={leaveForm.leave_type} onChange={(e) => setLeaveForm({...leaveForm, leave_type: e.target.value})}>
                 <option value="paid">Paid</option>
                 <option value="sick">Sick</option>
                 <option value="unpaid">Unpaid</option>
@@ -1542,14 +1603,14 @@ export default function App() {
               <Input placeholder="Attachment URL (required for Sick)" value={leaveForm.attachment_url} onChange={(e) => setLeaveForm({...leaveForm, attachment_url: e.target.value})} />
             </div>
             <Button className="mt-2" onClick={applyLeave} disabled={leaveSubmitting}>{leaveSubmitting ? "Submitting…" : "Submit Leave"}</Button>
-            {leaveError && <p className="text-red-500 mt-2">{leaveError}</p>}
-            {leaveSuccess && <p className="text-green-600 mt-2">{leaveSuccess}</p>}
+            {leaveError && <ErrorMessage message={leaveError} />}
+            {leaveSuccess && <SuccessMessage message={leaveSuccess} />}
           </Card>
 
           <Card className="p-4">
             <h3 className="mb-3 text-sm font-semibold">Leave List</h3>
             {leaveList.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No leave requests.</p>
+              <EmptyState icon="📋" message="No leave requests yet." actionLabel="Apply for Leave" onAction={() => setActiveNav("leave")} />
             ) : (
               <div className="space-y-2">
                 {leaveList.map((leave) => (
@@ -1585,12 +1646,13 @@ export default function App() {
         <Card className="p-4">
           <h2 className="mb-3 text-sm font-semibold">Notifications</h2>
           {notificationsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : notifications.length === 0 ? (
-            <div className="text-center py-8">
-              <span className="text-3xl">🔔</span>
-              <p className="mt-2 text-sm text-muted-foreground">You're all caught up!</p>
+            <div className="space-y-2">
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
             </div>
+          ) : notifications.length === 0 ? (
+            <EmptyState icon="🔔" message="You're all caught up!" />
           ) : (
             <div className="space-y-2">
               {notifications.map((n) => (
