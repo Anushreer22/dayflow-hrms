@@ -45,7 +45,7 @@ type NavKey =
 
 /* ---------- Reusable UI helpers ---------- */
 function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-gray-200 dark:bg-gray-800 ${className}`} />;
+  return <div className={`animate-pulse rounded-lg bg-muted ${className}`} />;
 }
 
 function EmptyState({
@@ -60,9 +60,9 @@ function EmptyState({
   onAction?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <span className="text-3xl text-muted-foreground">{icon}</span>
-      <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+    <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 px-6 py-12 text-center df-fade-in">
+      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-2xl">{icon}</span>
+      <p className="mt-4 max-w-xs text-sm text-muted-foreground">{message}</p>
       {actionLabel && onAction && (
         <Button variant="outline" className="mt-4" onClick={onAction}>
           {actionLabel}
@@ -74,7 +74,7 @@ function EmptyState({
 
 function ErrorMessage({ message }: { message: string }) {
   return (
-    <p className="text-sm text-red-500" role="alert" aria-live="assertive">
+    <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="assertive">
       Something went wrong: {message}
     </p>
   );
@@ -82,7 +82,7 @@ function ErrorMessage({ message }: { message: string }) {
 
 function SuccessMessage({ message }: { message: string }) {
   return (
-    <p className="text-sm text-green-600" role="status" aria-live="polite">
+    <p className="rounded-lg bg-green-500/10 px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400" role="status" aria-live="polite">
       {message}
     </p>
   );
@@ -91,7 +91,7 @@ function SuccessMessage({ message }: { message: string }) {
 function Avatar({ src, name, size = "md" }: { src?: string | null; name?: string | null; size?: "sm" | "md" | "lg" }) {
   const sizeClass = size === "sm" ? "h-8 w-8 text-xs" : size === "lg" ? "h-24 w-24 text-2xl" : "h-10 w-10 text-sm";
   if (src) {
-    return <img src={src} alt={name || "Profile"} className={`${sizeClass} rounded-full object-cover`} />;
+    return <img src={src} alt={name || "Profile"} className={`${sizeClass} rounded-full object-cover ring-2 ring-border`} />;
   }
   const initials =
     (name || "?")
@@ -101,7 +101,7 @@ function Avatar({ src, name, size = "md" }: { src?: string | null; name?: string
       .join("")
       .toUpperCase() || "?";
   return (
-    <div className={`${sizeClass} flex items-center justify-center rounded-full bg-gray-200 font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200`}>
+    <div className={`${sizeClass} flex items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 font-medium text-primary ring-2 ring-border`}>
       {initials}
     </div>
   );
@@ -971,49 +971,49 @@ export default function App() {
     switch (activeProfileTab) {
       case "myProfile":
         return (
-          <div className="space-y-2">
-            <p><span className="font-medium">Full Name:</span> {profileData.full_name}</p>
-            <p><span className="font-medium">Job Position:</span> {profileData.job_position || "—"}</p>
-            <p><span className="font-medium">Department:</span> {profileData.department || "—"}</p>
-            <p><span className="font-medium">Location:</span> {profileData.location || "—"}</p>
-            <p><span className="font-medium">Phone:</span> {profileData.phone || "—"}</p>
-            <p><span className="font-medium">Address:</span> {profileData.address || "—"}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><p className="text-xs text-muted-foreground">Full Name</p><p className="text-sm font-medium">{profileData.full_name}</p></div>
+            <div><p className="text-xs text-muted-foreground">Job Position</p><p className="text-sm font-medium">{profileData.job_position || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Department</p><p className="text-sm font-medium">{profileData.department || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Location</p><p className="text-sm font-medium">{profileData.location || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Phone</p><p className="text-sm font-medium">{profileData.phone || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Address</p><p className="text-sm font-medium">{profileData.address || "—"}</p></div>
           </div>
         );
       case "resume":
         return (
-          <div className="space-y-2">
-            <p><span className="font-medium">Resume URL:</span> {profileData.resume_url || "—"}</p>
-            <p><span className="font-medium">Date of Joining:</span> {profileData.date_of_joining || "—"}</p>
-            <p><span className="font-medium">Bank Account Number:</span> {profileData.bank_account_number || "—"}</p>
-            <p><span className="font-medium">Bank Name:</span> {profileData.bank_name || "—"}</p>
-            <p><span className="font-medium">IFSC Code:</span> {profileData.ifsc_code || "—"}</p>
-            <p><span className="font-medium">UAN No:</span> {profileData.uan_no || "—"}</p>
-            <p><span className="font-medium">PAN No:</span> {profileData.pan_no || "—"}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Resume URL</p><p className="truncate text-sm font-medium">{profileData.resume_url || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Date of Joining</p><p className="text-sm font-medium">{profileData.date_of_joining || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Bank Account Number</p><p className="text-sm font-medium">{profileData.bank_account_number || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Bank Name</p><p className="text-sm font-medium">{profileData.bank_name || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">IFSC Code</p><p className="text-sm font-medium">{profileData.ifsc_code || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">UAN No</p><p className="text-sm font-medium">{profileData.uan_no || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">PAN No</p><p className="text-sm font-medium">{profileData.pan_no || "—"}</p></div>
           </div>
         );
       case "privateInfo":
         return (
-          <div className="space-y-2">
-            <p><span className="font-medium">Date of Birth:</span> {profileData.date_of_birth || "—"}</p>
-            <p><span className="font-medium">Nationality:</span> {profileData.nationality || "—"}</p>
-            <p><span className="font-medium">Gender:</span> {profileData.gender || "—"}</p>
-            <p><span className="font-medium">Marital Status:</span> {profileData.marital_status || "—"}</p>
-            <p><span className="font-medium">Personal Email:</span> {profileData.personal_email || "—"}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><p className="text-xs text-muted-foreground">Date of Birth</p><p className="text-sm font-medium">{profileData.date_of_birth || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Nationality</p><p className="text-sm font-medium">{profileData.nationality || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Gender</p><p className="text-sm font-medium">{profileData.gender || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Marital Status</p><p className="text-sm font-medium">{profileData.marital_status || "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Personal Email</p><p className="text-sm font-medium">{profileData.personal_email || "—"}</p></div>
           </div>
         );
       case "skills":
         return (
-          <div className="space-y-2">
-            <p><span className="font-medium">Skills:</span></p>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Skills</p>
             {profileData.skills && profileData.skills.length > 0 ? (
-              <ul className="list-disc pl-5">
+              <div className="flex flex-wrap gap-2">
                 {profileData.skills.map((skill: string, idx: number) => (
-                  <li key={idx}>{skill}</li>
+                  <span key={idx} className="rounded-lg bg-muted px-3 py-1 text-sm">{skill}</span>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <p className="text-muted-foreground">No skills listed.</p>
+              <p className="text-sm text-muted-foreground">No skills listed.</p>
             )}
           </div>
         );
@@ -1406,7 +1406,7 @@ export default function App() {
             return (
               <div
                 key={cell.dateStr}
-                className={`flex min-h-14 flex-col items-center rounded border p-1 ${isWeekend ? "bg-gray-50 opacity-60 dark:bg-gray-900" : ""} ${isToday ? "ring-2 ring-blue-400" : ""}`}
+                className={`flex min-h-14 flex-col items-center rounded-lg border border-border/40 p-1 ${isWeekend ? "bg-muted/30 opacity-60" : ""} ${isToday ? "ring-2 ring-primary" : ""}`}
               >
                 <span className="text-xs">{cell.day}</span>
                 <div className="mt-1 flex flex-wrap justify-center gap-1">
@@ -1739,62 +1739,65 @@ export default function App() {
 
   if (authState === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        <Skeleton className="h-8 w-32" />
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+          <CalendarCheck size={26} />
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          Loading Dayflow…
+        </div>
       </main>
     );
   }
 
   if (authState === "login") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
-          <h1 className="text-xl font-semibold">Sign in to Dayflow</h1>
+      <main className="df-gradient-login relative flex min-h-screen items-center justify-center overflow-hidden p-4 text-foreground">
+        <div className="pointer-events-none absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
+        <div className="df-scale-in w-full max-w-md space-y-6 rounded-2xl border border-border/60 bg-card/80 p-8 shadow-xl backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+              <CalendarCheck size={28} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">Dayflow</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
+            </div>
+          </div>
           {sessionExpired && (
-            <p className="text-sm rounded bg-yellow-100 p-2 text-yellow-800" role="alert">
+            <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 dark:text-yellow-400" role="alert">
               Your session has expired. Please sign in again.
             </p>
           )}
           {error && <ErrorMessage message={error} />}
           {success && <SuccessMessage message={success} />}
-          <input
-            className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            placeholder="Email"
-            type="email"
-            value={loginEmail}
-            onChange={(e) => setLoginEmail(e.target.value)}
-          />
-          <input
-            className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            placeholder="Password"
-            type="password"
-            value={loginPassword}
-            onChange={(e) => setLoginPassword(e.target.value)}
-          />
-          <Button className="w-full" onClick={handleLogin} disabled={loading}>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground" htmlFor="login-email">Email</label>
+              <Input id="login-email" placeholder="you@company.com" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground" htmlFor="login-password">Password</label>
+              <Input id="login-password" placeholder="••••••••" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
+            </div>
+          </div>
+          <Button className="h-11 w-full" onClick={handleLogin} disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
           </Button>
-
-          <div className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-2 text-center text-sm">
             <button
               type="button"
-              className="text-left text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              onClick={() => {
-                setAuthState("forgotPassword");
-                setError("");
-                setSuccess("");
-              }}
+              className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              onClick={() => { setAuthState("forgotPassword"); setError(""); setSuccess(""); }}
             >
               Forgot password?
             </button>
             <button
               type="button"
-              className="text-left text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              onClick={() => {
-                setAuthState("resendVerification");
-                setError("");
-                setSuccess("");
-              }}
+              className="text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              onClick={() => { setAuthState("resendVerification"); setError(""); setSuccess(""); }}
             >
               Resend verification email
             </button>
@@ -1806,44 +1809,51 @@ export default function App() {
 
   if (authState === "forgotPassword" || authState === "resendVerification" || authState === "resetPassword" || authState === "changePassword") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
-          <h1 className="text-xl font-semibold">
-            {authState === "forgotPassword" && "Reset password"}
-            {authState === "resendVerification" && "Resend verification email"}
-            {authState === "resetPassword" && "Set a new password"}
-            {authState === "changePassword" && "Change your password"}
-          </h1>
+      <main className="df-gradient-login relative flex min-h-screen items-center justify-center overflow-hidden p-4 text-foreground">
+        <div className="pointer-events-none absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
+        <div className="df-scale-in w-full max-w-md space-y-6 rounded-2xl border border-border/60 bg-card/80 p-8 shadow-xl backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+              <CalendarCheck size={28} />
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {authState === "forgotPassword" && "Reset password"}
+              {authState === "resendVerification" && "Resend verification"}
+              {authState === "resetPassword" && "Set a new password"}
+              {authState === "changePassword" && "Change your password"}
+            </h1>
+          </div>
           {error && <ErrorMessage message={error} />}
           {success && <SuccessMessage message={success} />}
           {authState === "forgotPassword" && (
-            <>
-              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Email" type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} />
-              <Button className="w-full" onClick={handleForgotPassword} disabled={loading}>{loading ? "Sending…" : "Send reset email"}</Button>
-            </>
+            <div className="space-y-4">
+              <Input placeholder="Email" type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} />
+              <Button className="h-11 w-full" onClick={handleForgotPassword} disabled={loading}>{loading ? "Sending…" : "Send reset email"}</Button>
+            </div>
           )}
           {authState === "resendVerification" && (
-            <>
-              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Email" type="email" value={resendEmail} onChange={(e) => setResendEmail(e.target.value)} />
-              <Button className="w-full" onClick={handleResendVerification} disabled={loading}>{loading ? "Sending…" : "Resend verification"}</Button>
-            </>
+            <div className="space-y-4">
+              <Input placeholder="Email" type="email" value={resendEmail} onChange={(e) => setResendEmail(e.target.value)} />
+              <Button className="h-11 w-full" onClick={handleResendVerification} disabled={loading}>{loading ? "Sending…" : "Resend verification"}</Button>
+            </div>
           )}
           {authState === "resetPassword" && (
-            <>
-              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-              <Button className="w-full" onClick={handleResetPassword} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
-            </>
+            <div className="space-y-4">
+              <Input placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <Input placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              <Button className="h-11 w-full" onClick={handleResetPassword} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
+            </div>
           )}
           {authState === "changePassword" && (
-            <>
-              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              <input className="w-full rounded border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-              <Button className="w-full" onClick={handlePasswordChange} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
-              <Button variant="outline" className="w-full" onClick={handleLogout}>Log out</Button>
-            </>
+            <div className="space-y-4">
+              <Input placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <Input placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              <Button className="h-11 w-full" onClick={handlePasswordChange} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
+              <Button variant="outline" className="h-11 w-full" onClick={handleLogout}>Log out</Button>
+            </div>
           )}
-          <Button variant="outline" className="w-full" onClick={() => setAuthState("login")}>Back to sign in</Button>
+          <Button variant="outline" className="h-11 w-full" onClick={() => setAuthState("login")}>Back to sign in</Button>
         </div>
       </main>
     );
@@ -1853,12 +1863,18 @@ export default function App() {
   return (
     <main className="min-h-screen bg-background text-foreground md:flex">
       {/* Sidebar */}
-      <aside className="flex shrink-0 flex-col border-b p-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r">
-        <div className="mb-4 flex items-center gap-3">
+      <aside className="df-gradient-sidebar flex shrink-0 flex-col border-b border-border/60 p-4 md:sticky md:top-0 md:min-h-screen md:w-64 md:border-b-0 md:border-r">
+        <div className="mb-5 flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
+            <CalendarCheck size={18} />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">Dayflow</span>
+        </div>
+        <div className="mb-4 flex items-center gap-3 rounded-xl bg-muted/50 p-3">
           <Avatar src={profileData?.profile_picture_url} name={profileData?.full_name} size="md" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{profileData?.full_name || "…"}</p>
-            <p className="truncate text-xs text-muted-foreground capitalize">{role}</p>
+            <p className="truncate text-xs capitalize text-muted-foreground">{role}</p>
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto pb-2 md:flex-col md:overflow-visible md:pb-0" aria-label="Main navigation">
@@ -1867,24 +1883,24 @@ export default function App() {
               key={item.key}
               type="button"
               onClick={() => setActiveNav(item.key)}
-              className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 activeNav === item.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
               aria-current={activeNav === item.key ? "page" : undefined}
             >
               {item.icon}
               <span>{item.label}</span>
               {item.key === "notifications" && unreadCount > 0 && (
-                <span className="ml-auto rounded-full bg-red-500 px-1.5 text-xs text-white">{unreadCount}</span>
+                <span className="ml-auto rounded-full bg-red-500 px-1.5 text-xs font-medium text-white">{unreadCount}</span>
               )}
             </button>
           ))}
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-0 flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:hover:bg-gray-800 md:mt-auto"
+            className="mt-0 flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:mt-auto"
           >
             <LogOut size={16} />
             <span>Log out</span>
@@ -1893,25 +1909,27 @@ export default function App() {
       </aside>
 
       {/* Content */}
-      <div className="min-w-0 flex-1 p-4 md:p-6">
-        <div className="mx-auto max-w-4xl space-y-4">
+      <div className="min-w-0 flex-1 p-4 md:p-8">
+        <div className="mx-auto max-w-5xl space-y-8 df-fade-in">
           {/* DASHBOARD */}
           {activeNav === "dashboard" && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">{getGreeting()}</h2>
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold tracking-tight">{getGreeting()}</h2>
 
               {dashboardLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Skeleton className="h-28" />
+                  <Skeleton className="h-28" />
+                  <Skeleton className="h-28" />
                 </div>
               ) : role === "employee" && empDashboardData ? (
                 <>
-                  <Card className="p-4">
-                    <h3 className="mb-2 text-sm font-semibold">Quick Check-In</h3>
+                  <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
+                    <h3 className="mb-3 text-sm font-semibold">Quick Check-In</h3>
                     {todayAttendance?.check_in ? (
-                      <p className="text-sm">Checked in at {new Date(todayAttendance.check_in).toLocaleTimeString()}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Checked in at <span className="font-medium text-foreground">{new Date(todayAttendance.check_in).toLocaleTimeString()}</span>
+                      </p>
                     ) : (
                       <Button onClick={handleCheckIn} disabled={checkInLoading}>
                         {checkInLoading ? "Checking in…" : "Check In"}
@@ -1919,77 +1937,88 @@ export default function App() {
                     )}
                   </Card>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Card className="p-4">
-                      <h3 className="text-sm font-semibold">Present Days</h3>
-                      <p className="text-2xl font-bold">{empDashboardData.presentCount}</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-600">
+                        <CalendarCheck size={20} />
+                      </div>
+                      <p className="text-3xl font-bold tracking-tight">{empDashboardData.presentCount}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Present Days</p>
                     </Card>
-                    <Card className="p-4">
-                      <h3 className="text-sm font-semibold">Leave Days</h3>
-                      <p className="text-2xl font-bold">{empDashboardData.leaveDaysSum}</p>
+                    <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                        <CalendarDays size={20} />
+                      </div>
+                      <p className="text-3xl font-bold tracking-tight">{empDashboardData.leaveDaysSum}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Leave Days</p>
                     </Card>
-                    <Card className="p-4">
-                      <h3 className="text-sm font-semibold">Pending Leaves</h3>
-                      <p className="text-2xl font-bold">{empDashboardData.pendingCount}</p>
+                    <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-600">
+                        <Bell size={20} />
+                      </div>
+                      <p className="text-3xl font-bold tracking-tight">{empDashboardData.pendingCount}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Pending Leaves</p>
                     </Card>
                   </div>
 
-                  <Card className="p-4">
-                    <h3 className="mb-2 text-sm font-semibold">Last 7 Days</h3>
-                    <div className="flex items-end gap-2 h-24">
+                  <Card className="p-6 shadow-sm">
+                    <h3 className="mb-4 text-sm font-semibold">Last 7 Days</h3>
+                    <div className="flex h-32 items-end gap-2">
                       {empDashboardData.weekDays.map((day: any) => (
-                        <div key={day.date} className="flex-1 flex flex-col items-center">
-                          <div
-                            className={`w-full rounded-t ${day.status === "present" ? "bg-green-500" : day.status === "absent" ? "bg-yellow-500" : day.status === "half_day" ? "bg-orange-500" : day.status === "leave" ? "bg-blue-500" : "bg-gray-300"}`}
-                            style={{ height: `${day.status === "present" ? 40 : day.status === "absent" ? 20 : day.status === "half_day" ? 30 : day.status === "leave" ? 40 : 10}px` }}
-                          />
-                          <span className="text-xs mt-1">{new Date(day.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+                        <div key={day.date} className="flex flex-1 flex-col items-center gap-1.5">
+                          <div className="flex w-full flex-1 items-end">
+                            <div
+                              className={`w-full rounded-t-md transition-all ${day.status === "present" ? "bg-green-500" : day.status === "absent" ? "bg-yellow-500" : day.status === "half_day" ? "bg-orange-500" : day.status === "leave" ? "bg-blue-500" : "bg-muted-foreground/30"}`}
+                              style={{ height: `${day.status === "present" ? 48 : day.status === "absent" ? 24 : day.status === "half_day" ? 36 : day.status === "leave" ? 48 : 12}px` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">{new Date(day.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
                         </div>
                       ))}
                     </div>
                   </Card>
 
-                  <Card className="p-4">
-                    <h3 className="mb-2 text-sm font-semibold">Quick Actions</h3>
+                  <Card className="p-6 shadow-sm">
+                    <h3 className="mb-3 text-sm font-semibold">Quick Actions</h3>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => setActiveNav("leave")}>Apply for Leave</Button>
-                      <Button variant="outline" onClick={() => setActiveNav("profile")}>View Profile</Button>
-                      <Button variant="outline" onClick={() => setActiveNav("attendance")}>View Attendance</Button>
+                      <Button variant="outline" onClick={() => setActiveNav("leave")}><CalendarDays size={16} /> Apply for Leave</Button>
+                      <Button variant="outline" onClick={() => setActiveNav("profile")}><User size={16} /> View Profile</Button>
+                      <Button variant="outline" onClick={() => setActiveNav("attendance")}><CalendarCheck size={16} /> View Attendance</Button>
                     </div>
                   </Card>
                 </>
               ) : role === "admin" ? (
                 <>
-                  <Card className="p-4">
-                    <h3 className="mb-2 text-sm font-semibold">Employee Status Today</h3>
+                  <Card className="p-6 shadow-sm">
+                    <h3 className="mb-4 text-sm font-semibold">Employee Status Today</h3>
                     {dashboardLoading ? (
                       <Skeleton className="h-24" />
                     ) : adminDashboardData.length === 0 ? (
                       <EmptyState icon="👥" message="No employees found." />
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                         {adminDashboardData.map((emp: any) => (
-                          <div key={emp.user_id} className="flex items-center gap-3 rounded border p-3">
-                            <span className={`inline-block h-3 w-3 rounded-full ${getStatusDotClass(emp.todayStatus)}`} />
-                            <div>
-                              <p className="text-sm font-medium">{emp.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{emp.department || "No department"}</p>
+                          <div key={emp.user_id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/50">
+                            <span className={`inline-block h-3 w-3 shrink-0 rounded-full ${getStatusDotClass(emp.todayStatus)}`} />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{emp.full_name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{emp.department || "No department"}</p>
                             </div>
-                            <span className="ml-auto text-xs">{getStatusLabel(emp.todayStatus)}</span>
+                            <span className="ml-auto shrink-0 text-xs text-muted-foreground">{getStatusLabel(emp.todayStatus)}</span>
                           </div>
                         ))}
                       </div>
                     )}
                   </Card>
 
-                  <Card className="p-4">
-                    <h3 className="mb-2 text-sm font-semibold">Pending Approvals</h3>
+                  <Card className="p-6 shadow-sm">
+                    <h3 className="mb-4 text-sm font-semibold">Pending Approvals</h3>
                     {leaveList.filter((l) => l.status === "pending").length === 0 ? (
                       <EmptyState icon="📝" message="No pending leave requests." />
                     ) : (
                       <div className="space-y-2">
                         {leaveList.filter((l) => l.status === "pending").slice(0,5).map((leave) => (
-                          <div key={leave.id} className="flex items-center justify-between rounded border p-2">
+                          <div key={leave.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                             <div>
                               <p className="text-sm font-medium">{leave.users?.profiles?.full_name || leave.users?.email || "Unknown"}</p>
                               <p className="text-xs text-muted-foreground">{leave.leave_type} · {leave.start_date} → {leave.end_date}</p>
@@ -2002,7 +2031,7 @@ export default function App() {
                         ))}
                       </div>
                     )}
-                    <Button className="mt-2" variant="outline" onClick={() => setActiveNav("leave")}>View All Leaves</Button>
+                    <Button className="mt-3" variant="outline" onClick={() => setActiveNav("leave")}>View All Leaves</Button>
                   </Card>
                 </>
               ) : null}
@@ -2011,21 +2040,33 @@ export default function App() {
 
           {/* ATTENDANCE */}
           {activeNav === "attendance" && (
-            <div className="space-y-4">
-              <Card className="p-4">
+            <div className="space-y-6">
+              <Card className="p-6 shadow-sm">
                 <h2 className="mb-3 text-sm font-semibold">My Attendance Today</h2>
                 {!todayAttendance ? (
                   <Button onClick={handleCheckIn} disabled={checkInLoading}>{checkInLoading ? "Checking in…" : "Check In"}</Button>
                 ) : todayAttendance.check_out ? (
-                  <div className="space-y-2">
-                    <p>Check-in: {new Date(todayAttendance.check_in).toLocaleTimeString()}</p>
-                    <p>Check-out: {new Date(todayAttendance.check_out).toLocaleTimeString()}</p>
-                    <p>Work hours: {todayAttendance.work_hours?.toFixed(2)}</p>
-                    <p>Extra hours: {todayAttendance.extra_hours?.toFixed(2)}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <p className="text-xs text-muted-foreground">Check-in</p>
+                      <p className="text-sm font-medium">{new Date(todayAttendance.check_in).toLocaleTimeString()}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <p className="text-xs text-muted-foreground">Check-out</p>
+                      <p className="text-sm font-medium">{new Date(todayAttendance.check_out).toLocaleTimeString()}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <p className="text-xs text-muted-foreground">Work hours</p>
+                      <p className="text-sm font-medium">{todayAttendance.work_hours?.toFixed(2)}h</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <p className="text-xs text-muted-foreground">Extra hours</p>
+                      <p className="text-sm font-medium">{todayAttendance.extra_hours?.toFixed(2)}h</p>
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <p>Checked in at {new Date(todayAttendance.check_in).toLocaleTimeString()}</p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">Checked in at <span className="font-medium text-foreground">{new Date(todayAttendance.check_in).toLocaleTimeString()}</span></p>
                     <Button onClick={handleCheckOut} disabled={checkOutLoading}>{checkOutLoading ? "Checking out…" : "Check Out"}</Button>
                   </div>
                 )}
@@ -2036,12 +2077,12 @@ export default function App() {
               </Card>
 
               {role === "employee" && (
-                <Card className="p-4">
+                <Card className="p-6 shadow-sm">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-semibold">Monthly Attendance</h3>
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>←</Button>
-                      <span>{attendanceMonth}</span>
+                      <span className="min-w-[100px] text-center text-sm font-medium">{attendanceMonth}</span>
                       <Button variant="outline" size="sm" onClick={() => changeMonth(1)}>→</Button>
                     </div>
                   </div>
@@ -2058,7 +2099,7 @@ export default function App() {
                   ) : (
                     <div className="space-y-2">
                       {attendanceList.map((record) => (
-                        <div key={record.id} className="flex items-center justify-between rounded border p-2">
+                        <div key={record.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                           <div>
                             <p className="text-sm font-medium">{record.date}</p>
                             <p className="text-xs text-muted-foreground">
@@ -2076,7 +2117,7 @@ export default function App() {
 
               {role === "admin" && (
                 <>
-                  <Card className="p-4">
+                  <Card className="p-6 shadow-sm">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <h3 className="text-sm font-semibold">Today's Attendance (All Employees)</h3>
                       {!confirmBulkAbsent ? (
@@ -2084,7 +2125,7 @@ export default function App() {
                           Mark all absent who haven't checked in
                         </Button>
                       ) : (
-                        <div className="flex items-center gap-2 rounded border p-2">
+                        <div className="flex items-center gap-2 rounded-lg border border-border/60 p-3">
                           <span className="text-xs">Mark all missing employees as absent for today?</span>
                           <Button size="sm" onClick={bulkMarkAbsent} disabled={bulkAbsentLoading}>
                             {bulkAbsentLoading ? "Marking…" : "Confirm"}
@@ -2106,7 +2147,7 @@ export default function App() {
                     ) : (
                       <div className="space-y-2">
                         {adminTodayList.map((record) => (
-                          <div key={record.id} className="flex items-center justify-between rounded border p-2">
+                          <div key={record.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                             <div>
                               <p className="text-sm font-medium">{record.users?.profiles?.full_name || record.users?.email || "Unknown"}</p>
                               <p className="text-xs text-muted-foreground">
@@ -2120,7 +2161,7 @@ export default function App() {
                       </div>
                     )}
                   </Card>
-                  <Card className="p-4">
+                  <Card className="p-6 shadow-sm">
                     <h3 className="mb-3 text-sm font-semibold">Monthly Summary ({attendanceMonth})</h3>
                     {adminLoading ? (
                       <Skeleton className="h-16" />
@@ -2144,8 +2185,8 @@ export default function App() {
 
           {/* PROFILE */}
           {activeNav === "profile" && (
-            <div className="space-y-4">
-              <Card className="p-4">
+            <div className="space-y-6">
+              <Card className="p-6 shadow-sm">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-sm font-semibold">Profile</h2>
                   <div className="flex gap-2">
@@ -2173,7 +2214,7 @@ export default function App() {
                 </div>
 
                 {showChangePassword && (
-                  <div className="mb-4 space-y-2 rounded border p-3">
+                  <div className="mb-4 space-y-2 rounded-lg border border-border/60 p-3">
                     <h3 className="text-sm font-semibold">Change Password</h3>
                     <Input type="password" placeholder="Current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
                     <Input type="password" placeholder="New password" value={cpNewPassword} onChange={(e) => setCpNewPassword(e.target.value)} />
@@ -2265,7 +2306,7 @@ export default function App() {
               </Card>
 
               {role === "admin" && activeProfileTab === "salary" && (
-                <Card className="p-4">
+                <Card className="p-6 shadow-sm">
                   <h3 className="mb-3 text-sm font-semibold">Salary Configuration</h3>
                   <div className="space-y-2">
                     <Input name="wage_monthly" placeholder="Wage" value={salaryForm.wage_monthly} onChange={(e) => setSalaryForm({...salaryForm, wage_monthly: e.target.value})} />
@@ -2275,16 +2316,16 @@ export default function App() {
                     {salaryError && <ErrorMessage message={salaryError} />}
                     {salarySuccess && <SuccessMessage message={salarySuccess} />}
                     {salaryPreview && (
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <span>Basic: {salaryPreview.basic}</span>
-                        <span>HRA: {salaryPreview.hra}</span>
-                        <span>Standard Allowance: {salaryPreview.standard_allowance}</span>
-                        <span>Performance Bonus: {salaryPreview.performance_bonus}</span>
-                        <span>LTA: {salaryPreview.lta}</span>
-                        <span>Fixed Allowance: {salaryPreview.fixed_allowance}</span>
-                        <span>PF Employee: {salaryPreview.pf_employee}</span>
-                        <span>PF Employer: {salaryPreview.pf_employer}</span>
-                        <span>Professional Tax: {salaryPreview.professional_tax}</span>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Basic</p><p className="font-medium">{salaryPreview.basic}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">HRA</p><p className="font-medium">{salaryPreview.hra}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Std Allowance</p><p className="font-medium">{salaryPreview.standard_allowance}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Performance Bonus</p><p className="font-medium">{salaryPreview.performance_bonus}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">LTA</p><p className="font-medium">{salaryPreview.lta}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Fixed Allowance</p><p className="font-medium">{salaryPreview.fixed_allowance}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">PF Employee</p><p className="font-medium">{salaryPreview.pf_employee}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">PF Employer</p><p className="font-medium">{salaryPreview.pf_employer}</p></div>
+                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Professional Tax</p><p className="font-medium">{salaryPreview.professional_tax}</p></div>
                       </div>
                     )}
                   </div>
@@ -2295,22 +2336,28 @@ export default function App() {
 
           {/* LEAVE */}
           {activeNav === "leave" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card className="p-4">
-                  <h3 className="text-sm font-semibold">Paid Time Off</h3>
-                  <p className="text-2xl font-bold">{leaveBalances.paid} days available</p>
+                <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                    <CalendarDays size={20} />
+                  </div>
+                  <p className="text-3xl font-bold tracking-tight">{leaveBalances.paid}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Paid Time Off days</p>
                 </Card>
-                <Card className="p-4">
-                  <h3 className="text-sm font-semibold">Sick Time Off</h3>
-                  <p className="text-2xl font-bold">{leaveBalances.sick} days available</p>
+                <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 text-red-600">
+                    <Wallet size={20} />
+                  </div>
+                  <p className="text-3xl font-bold tracking-tight">{leaveBalances.sick}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Sick Time Off days</p>
                 </Card>
               </div>
 
-              <Card className="p-4">
+              <Card className="p-6 shadow-sm">
                 <h3 className="mb-3 text-sm font-semibold">Apply for Leave</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <select className="border rounded px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" value={leaveForm.leave_type} onChange={(e) => setLeaveForm({...leaveForm, leave_type: e.target.value})}>
+                  <select className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" value={leaveForm.leave_type} onChange={(e) => setLeaveForm({...leaveForm, leave_type: e.target.value})}>
                     <option value="paid">Paid</option>
                     <option value="sick">Sick</option>
                     <option value="unpaid">Unpaid</option>
@@ -2325,7 +2372,7 @@ export default function App() {
                 {leaveSuccess && <SuccessMessage message={leaveSuccess} />}
               </Card>
 
-              <Card className="p-4">
+              <Card className="p-6 shadow-sm">
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Leave Calendar — {monthLabel(attendanceMonth)}</h3>
                   <div className="flex items-center gap-2">
@@ -2336,14 +2383,14 @@ export default function App() {
                 {renderLeaveCalendar()}
               </Card>
 
-              <Card className="p-4">
+              <Card className="p-6 shadow-sm">
                 <h3 className="mb-3 text-sm font-semibold">Leave List</h3>
                 {leaveList.length === 0 ? (
                   <EmptyState icon="📋" message="No leave requests yet." actionLabel="Apply for Leave" onAction={() => setActiveNav("leave")} />
                 ) : (
                   <div className="space-y-2">
                     {leaveList.map((leave) => (
-                      <div key={leave.id} className="flex items-center justify-between rounded border p-2">
+                      <div key={leave.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                         <div>
                           <p className="text-sm font-medium">
                             {role === "admin" ? (leave.users?.profiles?.full_name || leave.users?.email || "Unknown") : `${leave.leave_type} leave`}
@@ -2372,14 +2419,14 @@ export default function App() {
 
           {/* PAYSLIP */}
           {activeNav === "payslip" && (
-            <div className="space-y-4">
-              <Card className="p-4">
+            <div className="space-y-6">
+              <Card className="p-6 shadow-sm">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold">Payslip</h2>
                   <div className="flex items-center gap-2">
                     {role === "admin" && (
                       <select
-                        className="rounded border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                         value={payslipSelectedUser}
                         onChange={(e) => handlePayslipUserChange(e.target.value)}
                       >
@@ -2418,7 +2465,7 @@ export default function App() {
                     const { earnings, deductions, gross, net } = payslipRows();
                     return (
                       <div className="space-y-4">
-                        <div className="rounded border p-3">
+                        <div className="rounded-lg border border-border/60 p-3">
                           <p className="text-base font-semibold">{payslipEmployee?.full_name || "Employee"}</p>
                           <p className="text-xs text-muted-foreground">
                             {payslipEmployee?.job_position || "—"} · {payslipEmployee?.department || "—"}
@@ -2430,12 +2477,12 @@ export default function App() {
                             <h3 className="mb-2 text-sm font-semibold">Earnings</h3>
                             <div className="space-y-1 text-sm">
                               {earnings.map((row) => (
-                                <div key={row.label} className="flex justify-between border-b pb-1">
-                                  <span>{row.label}</span>
-                                  <span>{formatCurrency(row.value)}</span>
+                                <div key={row.label} className="flex justify-between border-b border-border/40 pb-1.5">
+                                  <span className="text-muted-foreground">{row.label}</span>
+                                  <span className="font-medium">{formatCurrency(row.value)}</span>
                                 </div>
                               ))}
-                              <div className="flex justify-between pt-1 font-semibold">
+                              <div className="flex justify-between pt-1.5 font-semibold">
                                 <span>Gross Earnings</span>
                                 <span>{formatCurrency(gross)}</span>
                               </div>
@@ -2445,19 +2492,19 @@ export default function App() {
                             <h3 className="mb-2 text-sm font-semibold">Deductions</h3>
                             <div className="space-y-1 text-sm">
                               {deductions.map((row) => (
-                                <div key={row.label} className="flex justify-between border-b pb-1">
-                                  <span>{row.label}</span>
-                                  <span>{formatCurrency(row.value)}</span>
+                                <div key={row.label} className="flex justify-between border-b border-border/40 pb-1.5">
+                                  <span className="text-muted-foreground">{row.label}</span>
+                                  <span className="font-medium">{formatCurrency(row.value)}</span>
                                 </div>
                               ))}
-                              <div className="flex justify-between pt-1 font-semibold">
+                              <div className="flex justify-between pt-1.5 font-semibold">
                                 <span>Total Deductions</span>
                                 <span>{formatCurrency(deductions.reduce((s, r) => s + r.value, 0))}</span>
                               </div>
                             </div>
                           </div>
                         </div>
-                        <div className="flex justify-between rounded bg-primary/10 p-3 text-base font-bold">
+                        <div className="flex justify-between rounded-xl bg-primary/10 p-4 text-lg font-bold">
                           <span>Net Pay</span>
                           <span>{formatCurrency(net)}</span>
                         </div>
@@ -2471,8 +2518,8 @@ export default function App() {
 
           {/* DIRECTORY (admin only) */}
           {activeNav === "directory" && role === "admin" && (
-            <div className="space-y-4">
-              <Card className="p-4">
+            <div className="space-y-6">
+              <Card className="p-6 shadow-sm">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold">Employee Directory</h2>
                   <div className="relative">
@@ -2508,7 +2555,7 @@ export default function App() {
                           key={emp.user_id}
                           type="button"
                           onClick={() => setDirectorySelected(emp)}
-                          className="flex w-full items-center gap-3 rounded border p-2 text-left hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:hover:bg-gray-900"
+                          className="flex w-full items-center gap-3 rounded-lg border border-border/60 p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Avatar src={emp.profile_picture_url} name={emp.full_name} size="md" />
                           <div className="min-w-0">
@@ -2533,7 +2580,7 @@ export default function App() {
                   onClick={() => setDirectorySelected(null)}
                 >
                   <div
-                    className="w-full max-w-md space-y-3 rounded-lg border bg-background p-6"
+                    className="df-scale-in w-full max-w-md space-y-4 rounded-2xl border border-border/60 bg-card p-8 shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-start justify-between">
@@ -2548,11 +2595,11 @@ export default function App() {
                         <X size={14} />
                       </Button>
                     </div>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Department:</span> {directorySelected.department || "—"}</p>
-                      <p><span className="font-medium">Email:</span> {directorySelected.users?.email || "—"}</p>
-                      <p><span className="font-medium">Phone:</span> {directorySelected.phone || "—"}</p>
-                      <p><span className="font-medium">Location:</span> {directorySelected.location || "—"}</p>
+                    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                      <div><p className="text-xs text-muted-foreground">Department</p><p className="font-medium">{directorySelected.department || "—"}</p></div>
+                      <div><p className="text-xs text-muted-foreground">Location</p><p className="font-medium">{directorySelected.location || "—"}</p></div>
+                      <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Email</p><p className="font-medium">{directorySelected.users?.email || "—"}</p></div>
+                      <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium">{directorySelected.phone || "—"}</p></div>
                     </div>
                   </div>
                 </div>
@@ -2562,14 +2609,14 @@ export default function App() {
 
           {/* ANNOUNCEMENTS */}
           {activeNav === "announcements" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {role === "admin" && (
-                <Card className="p-4">
+                <Card className="p-6 shadow-sm">
                   <h3 className="mb-3 text-sm font-semibold">Post Announcement</h3>
                   <div className="space-y-2">
                     <Input placeholder="Title" value={announcementForm.title} onChange={(e) => setAnnouncementForm({...announcementForm, title: e.target.value})} />
                     <textarea
-                      className="w-full rounded border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                       rows={4}
                       placeholder="Content…"
                       value={announcementForm.content}
@@ -2583,7 +2630,7 @@ export default function App() {
                 </Card>
               )}
 
-              <Card className="p-4">
+              <Card className="p-6 shadow-sm">
                 <h3 className="mb-3 text-sm font-semibold">Announcements</h3>
                 {announcementsLoading ? (
                   <div className="space-y-2">
@@ -2597,16 +2644,16 @@ export default function App() {
                 ) : (
                   <div className="space-y-2">
                     {announcements.map((a: any) => (
-                      <div key={a.id} className="rounded border p-3">
-                        <div className="flex items-center justify-between">
+                      <div key={a.id} className="rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/30">
+                        <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold">{a.title}</p>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="shrink-0 text-xs text-muted-foreground">
                             {new Date(a.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="mt-1 whitespace-pre-wrap text-sm">{a.content}</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{a.content}</p>
                         {a.users?.profiles?.full_name && (
-                          <p className="mt-1 text-xs text-muted-foreground">Posted by {a.users.profiles.full_name}</p>
+                          <p className="mt-2 text-xs text-muted-foreground">Posted by {a.users.profiles.full_name}</p>
                         )}
                       </div>
                     ))}
@@ -2618,13 +2665,13 @@ export default function App() {
 
           {/* DOCUMENTS */}
           {activeNav === "documents" && (
-            <div className="space-y-4">
-              <Card className="p-4">
+            <div className="space-y-6">
+              <Card className="p-6 shadow-sm">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold">Documents</h2>
                   {role === "admin" && (
                     <select
-                      className="rounded border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                       value={documentsViewUser}
                       onChange={(e) => handleDocumentsViewUserChange(e.target.value)}
                     >
@@ -2645,7 +2692,7 @@ export default function App() {
                     onChange={handleDocumentsUpload}
                   />
                   <label htmlFor="documents-upload">
-                    <span className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900">
+                    <span className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted/50">
                       <Upload size={14} />
                       {documentUploading ? "Uploading…" : "Upload Documents"}
                     </span>
@@ -2665,7 +2712,7 @@ export default function App() {
                 ) : (
                   <div className="space-y-2">
                     {documents.map((doc: any) => (
-                      <div key={doc.id} className="flex items-center justify-between rounded border p-2">
+                      <div key={doc.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{doc.name}</p>
                           <p className="text-xs text-muted-foreground">
@@ -2677,7 +2724,7 @@ export default function App() {
                           href={doc.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex shrink-0 items-center gap-1 rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-900"
+                          className="flex shrink-0 items-center gap-1 rounded-md border px-3 py-1.5 text-sm hover:bg-muted/50"
                         >
                           <Download size={14} />
                           Open
@@ -2692,7 +2739,7 @@ export default function App() {
 
           {/* NOTIFICATIONS */}
           {activeNav === "notifications" && (
-            <Card className="p-4">
+            <Card className="p-6 shadow-sm">
               <h2 className="mb-3 text-sm font-semibold">Notifications</h2>
               {notificationsLoading ? (
                 <div className="space-y-2">
@@ -2705,14 +2752,17 @@ export default function App() {
               ) : (
                 <div className="space-y-2">
                   {notifications.map((n) => (
-                    <div key={n.id} className="flex items-start justify-between rounded border p-2">
-                      <div>
-                        <p className="text-sm font-medium">{n.title}</p>
-                        {n.body && <p className="text-xs text-muted-foreground">{n.body}</p>}
-                        <p className="text-xs text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                    <div key={n.id} className={`flex items-start justify-between rounded-lg border p-3 transition-colors ${n.is_read ? "border-border/60 bg-transparent" : "border-primary/30 bg-primary/5"}`}>
+                      <div className="flex items-start gap-2.5">
+                        {!n.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                        <div>
+                          <p className="text-sm font-medium">{n.title}</p>
+                          {n.body && <p className="text-xs text-muted-foreground">{n.body}</p>}
+                          <p className="mt-1 text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                        </div>
                       </div>
                       {n.is_read ? (
-                        <span className="text-xs text-muted-foreground">Read</span>
+                        <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">Read</span>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => markNotificationRead(n.id)}>Mark as read</Button>
                       )}
