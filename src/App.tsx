@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +29,9 @@ export default function App() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  const manualLogoutRef = useRef(false);
 
   useEffect(() => {
     const isRecovery = window.location.hash.includes("type=recovery");
@@ -38,7 +41,6 @@ export default function App() {
         setSession(session);
         if (isRecovery) {
           setAuthState("resetPassword");
-          // Clean the URL to avoid re-triggering
           window.history.replaceState(null, "", window.location.pathname);
         } else {
           checkUser(session.user.id);
@@ -47,6 +49,43 @@ export default function App() {
         setAuthState("login");
       }
     });
+  }, []);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_OUT") {
+          setSession(null);
+          setAuthState("login");
+          setLoginPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+
+          if (!manualLogoutRef.current) {
+            setSessionExpired(true);
+          }
+          manualLogoutRef.current = false;
+          return;
+        }
+
+        if (event === "TOKEN_REFRESHED") {
+          if (session) {
+            setSession(session);
+          }
+        }
+
+        if (event === "SIGNED_IN") {
+          setSession(session);
+          if (session) {
+            checkUser(session.user.id);
+          }
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function checkUser(userId: string) {
@@ -70,6 +109,8 @@ export default function App() {
 
   async function handleLogin() {
     setError("");
+    setSuccess("");
+    setSessionExpired(false);
     setLoading(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -197,6 +238,8 @@ export default function App() {
   }
 
   async function handleLogout() {
+    manualLogoutRef.current = true;
+    setSessionExpired(false);
     await supabase.auth.signOut();
     setSession(null);
     setAuthState("login");
@@ -223,6 +266,11 @@ export default function App() {
       <main className="flex min-h-screen items-center justify-center bg-background text-foreground">
         <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
           <h1 className="text-xl font-semibold">Sign in to Dayflow</h1>
+          {sessionExpired && (
+            <p className="text-sm rounded bg-yellow-100 p-2 text-yellow-800">
+              Your session has expired. Please sign in again.
+            </p>
+          )}
           {error && <p className="text-sm text-red-500">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
           <input
