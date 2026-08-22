@@ -44,6 +44,14 @@ export default function App() {
   const [checkOutError, setCheckOutError] = useState("");
   const [checkOutMessage, setCheckOutMessage] = useState("");
 
+  const [attendanceMonth, setAttendanceMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [attendanceList, setAttendanceList] = useState<any[]>([]);
+  const [attendanceListLoading, setAttendanceListLoading] = useState(false);
+  const [attendanceListError, setAttendanceListError] = useState("");
+
   const manualLogoutRef = useRef(false);
 
   useEffect(() => {
@@ -107,6 +115,13 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authState, session]);
+
+  useEffect(() => {
+    if (authState === "authenticated" && session) {
+      loadAttendanceList();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authState, session, attendanceMonth]);
 
   async function checkUser(userId: string) {
     const { data, error } = await supabase
@@ -324,6 +339,7 @@ export default function App() {
     } else {
       setCheckInMessage("Checked in successfully.");
       setTodayAttendance(data);
+      loadAttendanceList();
     }
     setCheckInLoading(false);
   }
@@ -359,8 +375,46 @@ export default function App() {
     } else {
       setCheckOutMessage("Checked out successfully.");
       setTodayAttendance(data);
+      loadAttendanceList();
     }
     setCheckOutLoading(false);
+  }
+
+  function getMonthStartEnd(month: string) {
+    const [year, mon] = month.split("-").map(Number);
+    const start = `${year}-${String(mon).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, mon, 0).getDate();
+    const end = `${year}-${String(mon).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    return { start, end };
+  }
+
+  async function loadAttendanceList() {
+    if (!session) return;
+    setAttendanceListLoading(true);
+    setAttendanceListError("");
+
+    const { start, end } = getMonthStartEnd(attendanceMonth);
+
+    const { data, error } = await supabase
+      .from("attendance")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .gte("date", start)
+      .lte("date", end)
+      .order("date", { ascending: false });
+
+    if (error) {
+      setAttendanceListError(error.message);
+    } else {
+      setAttendanceList(data || []);
+    }
+    setAttendanceListLoading(false);
+  }
+
+  function changeMonth(delta: number) {
+    const [year, mon] = attendanceMonth.split("-").map(Number);
+    const d = new Date(year, mon - 1 + delta, 1);
+    setAttendanceMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
 
   // ================= RENDER =================
@@ -646,6 +700,62 @@ export default function App() {
               </Button>
               {checkOutError && <p className="text-sm text-red-500">{checkOutError}</p>}
               {checkOutMessage && <p className="text-sm text-green-600">{checkOutMessage}</p>}
+            </div>
+          )}
+        </Card>
+
+        {/* Monthly attendance list */}
+        <Card className="p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Monthly Attendance</h2>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => changeMonth(-1)}
+              >
+                ←
+              </Button>
+              <span className="text-sm font-medium">{attendanceMonth}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => changeMonth(1)}
+              >
+                →
+              </Button>
+            </div>
+          </div>
+
+          {attendanceListLoading ? (
+            <p className="text-sm text-muted-foreground">Loading attendance…</p>
+          ) : attendanceListError ? (
+            <p className="text-sm text-red-500">{attendanceListError}</p>
+          ) : attendanceList.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No attendance records for this month.</p>
+          ) : (
+            <div className="space-y-2">
+              {attendanceList.map((record) => (
+                <div
+                  key={record.id}
+                  className="flex items-center justify-between rounded border p-2"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{record.date}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {record.check_in
+                        ? `In: ${new Date(record.check_in).toLocaleTimeString()}`
+                        : "No check-in"}
+                      {record.check_out
+                        ? ` · Out: ${new Date(record.check_out).toLocaleTimeString()}`
+                        : " · No check-out"}
+                    </p>
+                  </div>
+                  <Badge className={getStatusBadgeClass(record.status)}>
+                    {record.status}
+                  </Badge>
+                </div>
+              ))}
             </div>
           )}
         </Card>
