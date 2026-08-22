@@ -40,6 +40,10 @@ export default function App() {
   const [checkInError, setCheckInError] = useState("");
   const [checkInMessage, setCheckInMessage] = useState("");
 
+  const [checkOutLoading, setCheckOutLoading] = useState(false);
+  const [checkOutError, setCheckOutError] = useState("");
+  const [checkOutMessage, setCheckOutMessage] = useState("");
+
   const manualLogoutRef = useRef(false);
 
   useEffect(() => {
@@ -267,7 +271,7 @@ export default function App() {
     setSuccess("");
   }
 
-  // ===== Check-In Helpers =====
+  // ===== Attendance Helpers =====
 
   function getLocalDateString() {
     const d = new Date();
@@ -322,6 +326,41 @@ export default function App() {
       setTodayAttendance(data);
     }
     setCheckInLoading(false);
+  }
+
+  async function handleCheckOut() {
+    if (!session || !todayAttendance || todayAttendance.check_out) return;
+    setCheckOutLoading(true);
+    setCheckOutError("");
+    setCheckOutMessage("");
+
+    const now = new Date().toISOString();
+    const checkInTime = new Date(todayAttendance.check_in).getTime();
+    const checkOutTime = new Date(now).getTime();
+    const diffMs = checkOutTime - checkInTime;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const workHours = Math.max(0, diffHours);
+    const standardHours = 8;
+    const extraHours = Math.max(0, workHours - standardHours);
+
+    const { data, error } = await supabase
+      .from("attendance")
+      .update({
+        check_out: now,
+        work_hours: workHours,
+        extra_hours: extraHours,
+      })
+      .eq("id", todayAttendance.id)
+      .select()
+      .single();
+
+    if (error) {
+      setCheckOutError(error.message);
+    } else {
+      setCheckOutMessage("Checked out successfully.");
+      setTodayAttendance(data);
+    }
+    setCheckOutLoading(false);
   }
 
   // ================= RENDER =================
@@ -539,25 +578,10 @@ export default function App() {
       </p>
 
       <div className="w-full max-w-md space-y-2">
-        {/* Check In card */}
+        {/* Attendance card with check-in and check-out */}
         <Card className="p-4">
           <h2 className="mb-3 text-sm font-semibold">Attendance</h2>
-          {todayAttendance ? (
-            <div className="space-y-2">
-              <p className="text-sm">
-                Status: <span className="font-medium">Present</span>
-              </p>
-              <p className="text-sm">
-                Check-in time:{" "}
-                <span className="font-medium">
-                  {new Date(todayAttendance.check_in).toLocaleTimeString()}
-                </span>
-              </p>
-              <Button disabled className="w-full">
-                Already checked in
-              </Button>
-            </div>
-          ) : (
+          {!todayAttendance ? (
             <div className="space-y-2">
               <Button
                 className="w-full"
@@ -568,6 +592,60 @@ export default function App() {
               </Button>
               {checkInError && <p className="text-sm text-red-500">{checkInError}</p>}
               {checkInMessage && <p className="text-sm text-green-600">{checkInMessage}</p>}
+            </div>
+          ) : todayAttendance.check_out ? (
+            <div className="space-y-2">
+              <p className="text-sm">
+                Status: <span className="font-medium">Present</span>
+              </p>
+              <p className="text-sm">
+                Check-in:{" "}
+                <span className="font-medium">
+                  {new Date(todayAttendance.check_in).toLocaleTimeString()}
+                </span>
+              </p>
+              <p className="text-sm">
+                Check-out:{" "}
+                <span className="font-medium">
+                  {new Date(todayAttendance.check_out).toLocaleTimeString()}
+                </span>
+              </p>
+              <p className="text-sm">
+                Work hours:{" "}
+                <span className="font-medium">
+                  {todayAttendance.work_hours?.toFixed(2) ?? "—"}
+                </span>
+              </p>
+              <p className="text-sm">
+                Extra hours:{" "}
+                <span className="font-medium">
+                  {todayAttendance.extra_hours?.toFixed(2) ?? "—"}
+                </span>
+              </p>
+              <Button disabled className="w-full">
+                Checked out
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm">
+                Status: <span className="font-medium">Present</span>
+              </p>
+              <p className="text-sm">
+                Check-in:{" "}
+                <span className="font-medium">
+                  {new Date(todayAttendance.check_in).toLocaleTimeString()}
+                </span>
+              </p>
+              <Button
+                className="w-full"
+                onClick={handleCheckOut}
+                disabled={checkOutLoading}
+              >
+                {checkOutLoading ? "Checking out…" : "Check Out"}
+              </Button>
+              {checkOutError && <p className="text-sm text-red-500">{checkOutError}</p>}
+              {checkOutMessage && <p className="text-sm text-green-600">{checkOutMessage}</p>}
             </div>
           )}
         </Card>
