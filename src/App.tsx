@@ -35,15 +35,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
 
+  // Employee attendance states
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
   const [checkInError, setCheckInError] = useState("");
   const [checkInMessage, setCheckInMessage] = useState("");
-
   const [checkOutLoading, setCheckOutLoading] = useState(false);
   const [checkOutError, setCheckOutError] = useState("");
   const [checkOutMessage, setCheckOutMessage] = useState("");
-
   const [attendanceMonth, setAttendanceMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -51,6 +50,12 @@ export default function App() {
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
   const [attendanceListLoading, setAttendanceListLoading] = useState(false);
   const [attendanceListError, setAttendanceListError] = useState("");
+
+  // Admin attendance states
+  const [adminTodayList, setAdminTodayList] = useState<any[]>([]);
+  const [adminMonthSummary, setAdminMonthSummary] = useState<any>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState("");
 
   const manualLogoutRef = useRef(false);
 
@@ -109,6 +114,7 @@ export default function App() {
     };
   }, []);
 
+  // Load today's attendance for current user (any role)
   useEffect(() => {
     if (authState === "authenticated" && session) {
       loadTodayAttendance();
@@ -116,12 +122,21 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authState, session]);
 
+  // Load employee monthly attendance list (only for employees)
   useEffect(() => {
-    if (authState === "authenticated" && session) {
+    if (authState === "authenticated" && session && role === "employee") {
       loadAttendanceList();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authState, session, attendanceMonth]);
+  }, [authState, session, role, attendanceMonth]);
+
+  // Load admin attendance data (only for admins)
+  useEffect(() => {
+    if (authState === "authenticated" && session && role === "admin") {
+      loadAdminData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authState, session, role]);
 
   async function checkUser(userId: string) {
     const { data, error } = await supabase
@@ -286,7 +301,7 @@ export default function App() {
     setSuccess("");
   }
 
-  // ===== Attendance Helpers =====
+  // ===== Employee Attendance Helpers =====
 
   function getLocalDateString() {
     const d = new Date();
@@ -339,7 +354,8 @@ export default function App() {
     } else {
       setCheckInMessage("Checked in successfully.");
       setTodayAttendance(data);
-      loadAttendanceList();
+      if (role === "employee") loadAttendanceList();
+      if (role === "admin") loadAdminData();
     }
     setCheckInLoading(false);
   }
@@ -375,7 +391,8 @@ export default function App() {
     } else {
       setCheckOutMessage("Checked out successfully.");
       setTodayAttendance(data);
-      loadAttendanceList();
+      if (role === "employee") loadAttendanceList();
+      if (role === "admin") loadAdminData();
     }
     setCheckOutLoading(false);
   }
@@ -415,6 +432,66 @@ export default function App() {
     const [year, mon] = attendanceMonth.split("-").map(Number);
     const d = new Date(year, mon - 1 + delta, 1);
     setAttendanceMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+
+  // ===== Admin Attendance Helpers =====
+
+  async function loadAdminData() {
+    if (!session) return;
+    setAdminLoading(true);
+    setAdminError("");
+
+    const today = getLocalDateString();
+
+    // Fetch today's attendance with user + profile, using explicit FK for profiles
+    const { data: todayData, error: todayError } = await supabase
+      .from("attendance")
+      .select(`
+        id,
+        date,
+        check_in,
+        check_out,
+        work_hours,
+        extra_hours,
+        status,
+        users!inner (
+          id,
+          login_id,
+          email,
+          profiles!profiles_user_id_fkey (full_name)
+        )
+      `)
+      .eq("date", today);
+
+    if (todayError) {
+      setAdminError(todayError.message);
+      setAdminLoading(false);
+      return;
+    }
+
+    setAdminTodayList(todayData || []);
+
+    // Fetch monthly summary counts
+    const { start, end } = getMonthStartEnd(attendanceMonth);
+    const { data: monthData, error: monthError } = await supabase
+      .from("attendance")
+      .select("status")
+      .gte("date", start)
+      .lte("date", end);
+
+    if (monthError) {
+      setAdminError(monthError.message);
+      setAdminLoading(false);
+      return;
+    }
+
+    const summary: Record<string, number> = {};
+    (monthData || []).forEach((row: any) => {
+      const s = row.status;
+      summary[s] = (summary[s] || 0) + 1;
+    });
+    setAdminMonthSummary(summary);
+    setAdminLoading(false);
   }
 
   // ================= RENDER =================
@@ -631,10 +708,10 @@ export default function App() {
         Role: {role} | Password change required: {mustChangePassword ? "Yes" : "No"}
       </p>
 
-      <div className="w-full max-w-md space-y-2">
-        {/* Attendance card with check-in and check-out */}
+      <div className="w-full max-w-2xl space-y-4">
+        {/* Attendance card (current user check-in/out) */}
         <Card className="p-4">
-          <h2 className="mb-3 text-sm font-semibold">Attendance</h2>
+          <h2 className="mb-3 text-sm font-semibold">My Attendance Today</h2>
           {!todayAttendance ? (
             <div className="space-y-2">
               <Button
@@ -704,63 +781,116 @@ export default function App() {
           )}
         </Card>
 
-        {/* Monthly attendance list */}
-        <Card className="p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Monthly Attendance</h2>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => changeMonth(-1)}
-              >
-                ←
-              </Button>
-              <span className="text-sm font-medium">{attendanceMonth}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => changeMonth(1)}
-              >
-                →
-              </Button>
+        {/* Employee monthly attendance list */}
+        {role === "employee" && (
+          <Card className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Monthly Attendance</h2>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>
+                  ←
+                </Button>
+                <span className="text-sm font-medium">{attendanceMonth}</span>
+                <Button variant="outline" size="sm" onClick={() => changeMonth(1)}>
+                  →
+                </Button>
+              </div>
             </div>
-          </div>
 
-          {attendanceListLoading ? (
-            <p className="text-sm text-muted-foreground">Loading attendance…</p>
-          ) : attendanceListError ? (
-            <p className="text-sm text-red-500">{attendanceListError}</p>
-          ) : attendanceList.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No attendance records for this month.</p>
-          ) : (
-            <div className="space-y-2">
-              {attendanceList.map((record) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between rounded border p-2"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{record.date}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {record.check_in
-                        ? `In: ${new Date(record.check_in).toLocaleTimeString()}`
-                        : "No check-in"}
-                      {record.check_out
-                        ? ` · Out: ${new Date(record.check_out).toLocaleTimeString()}`
-                        : " · No check-out"}
-                    </p>
+            {attendanceListLoading ? (
+              <p className="text-sm text-muted-foreground">Loading attendance…</p>
+            ) : attendanceListError ? (
+              <p className="text-sm text-red-500">{attendanceListError}</p>
+            ) : attendanceList.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No attendance records for this month.</p>
+            ) : (
+              <div className="space-y-2">
+                {attendanceList.map((record) => (
+                  <div key={record.id} className="flex items-center justify-between rounded border p-2">
+                    <div>
+                      <p className="text-sm font-medium">{record.date}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {record.check_in
+                          ? `In: ${new Date(record.check_in).toLocaleTimeString()}`
+                          : "No check-in"}
+                        {record.check_out
+                          ? ` · Out: ${new Date(record.check_out).toLocaleTimeString()}`
+                          : " · No check-out"}
+                      </p>
+                    </div>
+                    <Badge className={getStatusBadgeClass(record.status)}>
+                      {record.status}
+                    </Badge>
                   </div>
-                  <Badge className={getStatusBadgeClass(record.status)}>
-                    {record.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
 
-        {/* Status Badge Showcase */}
+        {/* Admin attendance view */}
+        {role === "admin" && (
+          <>
+            <Card className="p-4">
+              <h2 className="mb-3 text-sm font-semibold">Today's Attendance (All Employees)</h2>
+              {adminLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : adminError ? (
+                <p className="text-sm text-red-500">{adminError}</p>
+              ) : adminTodayList.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No attendance records yet today.</p>
+              ) : (
+                <div className="space-y-2">
+                  {adminTodayList.map((record) => (
+                    <div key={record.id} className="flex items-center justify-between rounded border p-2">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {record.users?.profiles?.full_name || record.users?.email || "Unknown"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {record.check_in ? `In: ${new Date(record.check_in).toLocaleTimeString()}` : "No check-in"}
+                          {record.check_out ? ` · Out: ${new Date(record.check_out).toLocaleTimeString()}` : " · No check-out"}
+                        </p>
+                      </div>
+                      <Badge className={getStatusBadgeClass(record.status)}>
+                        {record.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              <h2 className="mb-3 text-sm font-semibold">Monthly Summary ({attendanceMonth})</h2>
+              {adminLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : adminMonthSummary ? (
+                <div className="flex flex-wrap gap-4">
+                  {Object.entries(adminMonthSummary as Record<string, unknown>).map(([status, count]) => {
+                    const summaryCount = typeof count === "number" || typeof count === "string" ? count : 0;
+
+                    return (
+                      <div key={status} className="flex items-center gap-2">
+                        <Badge className={getStatusBadgeClass(status)}>
+                          {status}
+                        </Badge>
+                        <span className="text-sm font-medium">{summaryCount}</span>
+                      </div>
+                    );
+                  })}
+                  {Object.keys(adminMonthSummary).length === 0 && (
+                    <p className="text-sm text-muted-foreground">No records this month.</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No summary available.</p>
+              )}
+            </Card>
+          </>
+        )}
+
+        {/* Status Badge Showcase (keep for now) */}
         <Card className="p-4">
           <h2 className="mb-3 text-sm font-semibold">Status Badge Showcase</h2>
           <div className="flex flex-wrap gap-2">
@@ -776,7 +906,7 @@ export default function App() {
           </div>
         </Card>
 
-        {/* Input and Button */}
+        {/* Input and Button (keep for now) */}
         <Card className="p-4">
           <h2 className="mb-3 text-sm font-semibold">Input and Button</h2>
           <Input placeholder="Sample input" className="mb-3" />
