@@ -66,6 +66,14 @@ export default function App() {
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
 
+  // Salary states
+  const [salaryData, setSalaryData] = useState<any>(null);
+  const [salaryForm, setSalaryForm] = useState({ wage_monthly: "", effective_from: "" });
+  const [salarySaving, setSalarySaving] = useState(false);
+  const [salaryError, setSalaryError] = useState("");
+  const [salarySuccess, setSalarySuccess] = useState("");
+  const [salaryPreview, setSalaryPreview] = useState<any>(null);
+
   const manualLogoutRef = useRef(false);
 
   useEffect(() => {
@@ -151,6 +159,7 @@ export default function App() {
   useEffect(() => {
     if (authState === "authenticated" && session) {
       loadProfile();
+      loadSalary();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authState, session]);
@@ -458,6 +467,216 @@ export default function App() {
     setProfileSaving(false);
   }
 
+  // ===== Salary Helpers =====
+
+  function formatMoney(value: number | string | null | undefined) {
+    if (value === null || value === undefined || value === "") return "—";
+    const num = Number(value);
+    if (Number.isNaN(num)) return "—";
+    return num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderSalaryComponents(row: any) {
+    if (!row) return null;
+    return (
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        <p><span className="font-medium">Basic:</span> {formatMoney(row.basic)}</p>
+        <p><span className="font-medium">HRA:</span> {formatMoney(row.hra)}</p>
+        <p><span className="font-medium">Standard allowance:</span> {formatMoney(row.standard_allowance)}</p>
+        <p><span className="font-medium">Performance bonus:</span> {formatMoney(row.performance_bonus)}</p>
+        <p><span className="font-medium">LTA:</span> {formatMoney(row.lta)}</p>
+        <p><span className="font-medium">Fixed allowance:</span> {formatMoney(row.fixed_allowance)}</p>
+        <p><span className="font-medium">PF (employee):</span> {formatMoney(row.pf_employee)}</p>
+        <p><span className="font-medium">PF (employer):</span> {formatMoney(row.pf_employer)}</p>
+        <p><span className="font-medium">Professional tax:</span> {formatMoney(row.professional_tax)}</p>
+      </div>
+    );
+  }
+
+  async function loadSalary() {
+    if (!session) return;
+    const { data, error } = await supabase
+      .from("salary_structures")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (error) {
+      setSalaryError(error.message);
+      return;
+    }
+
+    setSalaryData(data);
+    if (data) {
+      setSalaryForm({
+        wage_monthly: String(data.wage_monthly ?? ""),
+        effective_from: data.effective_from || "",
+      });
+    }
+  }
+
+  function handleSalaryInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    setSalaryForm((prev) => ({ ...prev, [name]: value }));
+    setSalaryPreview(null);
+    setSalaryError("");
+    setSalarySuccess("");
+  }
+
+  async function calculateSalaryPreview(wage?: number) {
+    setSalaryError("");
+    setSalarySuccess("");
+    const wageValue = wage ?? Number(salaryForm.wage_monthly);
+    if (!wageValue || Number.isNaN(wageValue) || wageValue <= 0) {
+      setSalaryError("Enter a valid monthly wage to preview.");
+      return;
+    }
+    const effectiveFrom = salaryForm.effective_from || new Date().toISOString().slice(0, 10);
+
+    const { data, error } = await supabase.rpc("calculate_salary_components", {
+      wage: wageValue,
+      effective_from: effectiveFrom,
+    });
+
+    if (error) {
+      setSalaryError(error.message);
+      setSalaryPreview(null);
+      return;
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+    setSalaryPreview(row || null);
+  }
+
+  async function saveSalary() {
+    if (!session || role !== "admin") {
+      setSalaryError("Only admins can update salary structures.");
+      return;
+    }
+
+    const wageValue = Number(salaryForm.wage_monthly);
+    if (!wageValue || Number.isNaN(wageValue) || wageValue <= 0) {
+      setSalaryError("Enter a valid monthly wage.");
+      return;
+    }
+    if (!salaryForm.effective_from) {
+      setSalaryError("Effective from date is required.");
+      return;
+    }
+
+    setSalarySaving(true);
+    setSalaryError("");
+    setSalarySuccess("");
+
+    const payload = {
+      user_id: session.user.id,
+      wage_monthly: wageValue,
+      effective_from: salaryForm.effective_from,
+    };
+
+    const { data, error } = await supabase
+      .from("salary_structures")
+      .upsert(payload, { onConflict: "user_id" })
+      .select()
+      .single();
+
+    if (error) {
+      setSalaryError(error.message);
+    } else {
+      setSalaryData(data);
+      setSalaryPreview(null);
+      setSalarySuccess("Salary structure saved. Components were recalculated automatically.");
+      await loadSalary();
+    }
+    setSalarySaving(false);
+  }
+
+  function renderSalaryTabContent() {
+    if (role === "admin") {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Enter monthly wage and effective date. Components are calculated automatically and cannot be edited by hand.
+          </p>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="wage_monthly">Monthly wage</label>
+            <Input
+              id="wage_monthly"
+              name="wage_monthly"
+              type="number"
+              step="0.01"
+              placeholder="Monthly wage"
+              value={salaryForm.wage_monthly}
+              onChange={handleSalaryInputChange}
+            />
+            <label className="text-sm font-medium" htmlFor="effective_from">Effective from</label>
+            <Input
+              id="effective_from"
+              name="effective_from"
+              type="date"
+              value={salaryForm.effective_from}
+              onChange={handleSalaryInputChange}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => calculateSalaryPreview()}
+              >
+                Calculate Preview
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={saveSalary}
+                disabled={salarySaving}
+              >
+                {salarySaving ? "Saving…" : "Save salary"}
+              </Button>
+            </div>
+          </div>
+          {salaryError && <p className="text-sm text-red-500">{salaryError}</p>}
+          {salarySuccess && <p className="text-sm text-green-600">{salarySuccess}</p>}
+          {salaryPreview && (
+            <div className="space-y-2 rounded border p-3">
+              <p className="text-sm font-medium">Preview (not saved yet)</p>
+              {renderSalaryComponents(salaryPreview)}
+            </div>
+          )}
+          {salaryData && (
+            <div className="space-y-2 rounded border p-3">
+              <p className="text-sm font-medium">Saved structure</p>
+              <p className="text-sm">
+                <span className="font-medium">Monthly wage:</span> {formatMoney(salaryData.wage_monthly)}
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">Effective from:</span> {salaryData.effective_from || "—"}
+              </p>
+              {renderSalaryComponents(salaryData)}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (!salaryData) {
+      return <p className="text-sm text-muted-foreground">No salary structure on file.</p>;
+    }
+
+    return (
+      <div className="space-y-2">
+        <p className="text-sm">
+          <span className="font-medium">Monthly wage:</span> {formatMoney(salaryData.wage_monthly)}
+        </p>
+        <p className="text-sm">
+          <span className="font-medium">Effective from:</span> {salaryData.effective_from || "—"}
+        </p>
+        {renderSalaryComponents(salaryData)}
+      </div>
+    );
+  }
+
   function renderProfileTabContent() {
     if (!profileData) {
       return <p className="text-sm text-muted-foreground">No profile found.</p>;
@@ -519,11 +738,7 @@ export default function App() {
           </div>
         );
       case "salary":
-        return (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Salary details will be available in Phase 4.</p>
-          </div>
-        );
+        return renderSalaryTabContent();
       default:
         return null;
     }
@@ -1038,7 +1253,7 @@ export default function App() {
               { key: "privateInfo", label: "Private Info" },
               { key: "skills", label: "Skills" },
               { key: "about", label: "About" },
-              ...(role === "admin" ? [{ key: "salary", label: "Salary Info" }] : []),
+              { key: "salary", label: "Salary Info" },
             ].map((tab) => (
               <Button
                 key={tab.key}
@@ -1051,7 +1266,9 @@ export default function App() {
             ))}
           </div>
 
-          {editMode ? (
+          {activeProfileTab === "salary" ? (
+            renderSalaryTabContent()
+          ) : editMode ? (
             <div className="space-y-2">
               {role === "admin" ? (
                 <>
@@ -1088,6 +1305,29 @@ export default function App() {
           ) : (
             renderProfileTabContent()
           )}
+        </Card>
+
+        {/* Salary summary */}
+        <Card className="p-4">
+          <h2 className="mb-3 text-sm font-semibold">Salary</h2>
+          {salaryData ? (
+            <div className="space-y-1 text-sm">
+              <p>
+                <span className="font-medium">Monthly wage:</span> {formatMoney(salaryData.wage_monthly)}
+              </p>
+              <p>
+                <span className="font-medium">Basic:</span> {formatMoney(salaryData.basic)}
+              </p>
+              <p>
+                <span className="font-medium">Effective from:</span> {salaryData.effective_from || "—"}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No salary structure on file.</p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Details are in Profile &gt; Salary Info.
+          </p>
         </Card>
 
         {/* Employee monthly attendance list */}
@@ -1181,7 +1421,7 @@ export default function App() {
                       <Badge className={getStatusBadgeClass(status)}>
                         {status}
                       </Badge>
-                      <span className="text-sm font-medium">{count}</span>
+                      <span className="text-sm font-medium">{String(count)}</span>
                     </div>
                   ))}
                   {Object.keys(adminMonthSummary).length === 0 && (
