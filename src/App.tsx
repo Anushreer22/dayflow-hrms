@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/lib/status";
 type AuthState =
   | "loading"
   | "login"
@@ -453,19 +456,37 @@ export default function App() {
       </main>
     );
   }
+return (
+  <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground p-6">
+    <h1 className="text-2xl font-semibold">Welcome to Dayflow</h1>
+    <p>
+      You are signed in as <span className="font-medium">{session?.user?.email}</span>.
+    </p>
+    <p className="text-sm text-muted-foreground">
+      Role: {role} | Password change required: {mustChangePassword ? "Yes" : "No"}
+    </p>
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
-      <h1 className="text-2xl font-semibold">Welcome to Dayflow</h1>
-      <p>
-        You are signed in as <span className="font-medium">{session?.user?.email}</span>.
-      </p>
-      <p className="text-sm text-muted-foreground">
-        Role: {role} | Password change required: {mustChangePassword ? "Yes" : "No"}
-      </p>
-      <Button variant="outline" onClick={handleLogout}>
-        Log out
-      </Button>
-    </main>
+    <div className="w-full max-w-md space-y-2">
+      <Card className="p-4">
+        <h2 className="mb-3 text-sm font-semibold">Status Badge Showcase</h2>
+        <div className="flex flex-wrap gap-2">
+          <Badge className={getStatusBadgeClass("present")}>Present</Badge>
+          <Badge className={getStatusBadgeClass("absent")}>Absent</Badge>
+          <Badge className={getStatusBadgeClass("half_day")}>Half Day</Badge>
+          <Badge className={getStatusBadgeClass("leave")}>Leave</Badge>
+          <Badge className={getStatusBadgeClass("pending")}>Pending</Badge>
+          <Badge className={getStatusBadgeClass("approved")}>Approved</Badge>
+          <Badge className={getStatusBadgeClass("rejected")}>Rejected</Badge>
+          <Badge className={getStatusBadgeClass("admin")}>Admin</Badge>
+          <Badge className={getStatusBadgeClass("employee")}>Employee</Badge>
+        </div>
+      </Card>
+      <Card className="p-4">
+        <h2 className="mb-3 text-sm font-semibold">Input and Button</h2>
+        <Input placeholder="Sample input" className="mb-3" />
+        <Button variant="outline" onClick={handleLogout}>Log out</Button>
+      </Card>
+    </div>
+  </main>
   );
 }
