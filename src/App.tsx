@@ -45,7 +45,7 @@ type NavKey =
 
 /* ---------- Reusable UI helpers ---------- */
 function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-muted ${className}`} />;
+  return <div className={`shimmer rounded-xl ${className}`} />;
 }
 
 function EmptyState({
@@ -53,18 +53,28 @@ function EmptyState({
   message,
   actionLabel,
   onAction,
+  accent = "blue",
 }: {
   icon: ReactNode;
   message: string;
   actionLabel?: string;
   onAction?: () => void;
+  accent?: "blue" | "emerald" | "orange" | "pink" | "teal" | "purple";
 }) {
+  const accentClass = {
+    blue: "df-accent-blue",
+    emerald: "df-accent-emerald",
+    orange: "df-accent-orange",
+    pink: "df-accent-pink",
+    teal: "df-accent-teal",
+    purple: "df-accent-purple",
+  }[accent];
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 px-6 py-12 text-center df-fade-in">
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-2xl">{icon}</span>
-      <p className="mt-4 max-w-xs text-sm text-muted-foreground">{message}</p>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-card/50 px-6 py-12 text-center df-fade-in backdrop-blur-sm">
+      <span className={`df-icon-bubble df-pulse-soft h-16 w-16 rounded-2xl text-3xl ${accentClass}`}>{icon}</span>
+      <p className="mt-5 max-w-xs text-sm font-medium text-muted-foreground">{message}</p>
       {actionLabel && onAction && (
-        <Button variant="outline" className="mt-4" onClick={onAction}>
+        <Button className="mt-5 bg-gradient-to-r from-[var(--accent-from)] to-[var(--accent-to)] text-white shadow-lg shadow-[var(--accent-from)]/20 hover:opacity-90 active:scale-95" onClick={onAction}>
           {actionLabel}
         </Button>
       )}
@@ -74,26 +84,28 @@ function EmptyState({
 
 function ErrorMessage({ message }: { message: string }) {
   return (
-    <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="assertive">
-      Something went wrong: {message}
-    </p>
+    <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm" role="alert" aria-live="assertive">
+      <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-destructive" />
+      {message}
+    </div>
   );
 }
 
 function SuccessMessage({ message }: { message: string }) {
   return (
-    <p className="rounded-lg bg-green-500/10 px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400" role="status" aria-live="polite">
+    <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-600 shadow-sm dark:text-emerald-400" role="status" aria-live="polite">
+      <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
       {message}
-    </p>
+    </div>
   );
 }
 
 function Avatar({ src, name, size = "md" }: { src?: string | null; name?: string | null; size?: "sm" | "md" | "lg" }) {
   const sizeClass = size === "sm" ? "h-8 w-8 text-xs" : size === "lg" ? "h-24 w-24 text-2xl" : "h-10 w-10 text-sm";
-  if (src) {
-    return <img src={src} alt={name || "Profile"} className={`${sizeClass} rounded-full object-cover ring-2 ring-border`} />;
-  }
-  const initials =
+  const ringClass = "ring-[2.5px] ring-white/50 dark:ring-white/10";
+  const gradientRing = "p-[2.5px] rounded-full bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500";
+  const innerClass = `${sizeClass} rounded-full object-cover ${ringClass}`;
+  const fallback =
     (name || "?")
       .split(" ")
       .map((w) => w[0])
@@ -101,8 +113,14 @@ function Avatar({ src, name, size = "md" }: { src?: string | null; name?: string
       .join("")
       .toUpperCase() || "?";
   return (
-    <div className={`${sizeClass} flex items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 font-medium text-primary ring-2 ring-border`}>
-      {initials}
+    <div className={gradientRing}>
+      {src ? (
+        <img src={src} alt={name || "Profile"} className={innerClass} />
+      ) : (
+        <div className={`${sizeClass} flex items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 font-bold text-primary ${ringClass}`}>
+          {fallback}
+        </div>
+      )}
     </div>
   );
 }
@@ -965,51 +983,58 @@ export default function App() {
 
   function renderProfileTabContent() {
     if (!profileData) {
-      return <EmptyState icon="👤" message="No profile data found." />;
+      return <EmptyState icon="👤" message="No profile data found." accent="pink" />;
     }
+
+    const Field = ({ label, value, fullWidth = false }: { label: string; value: string; fullWidth?: boolean }) => (
+      <div className={`rounded-xl border border-border/40 bg-gradient-to-br from-pink-500/5 to-transparent p-3 ${fullWidth ? "sm:col-span-2" : ""}`}>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className={`mt-0.5 text-sm font-bold ${fullWidth ? "truncate" : ""}`}>{value || "—"}</p>
+      </div>
+    );
 
     switch (activeProfileTab) {
       case "myProfile":
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div><p className="text-xs text-muted-foreground">Full Name</p><p className="text-sm font-medium">{profileData.full_name}</p></div>
-            <div><p className="text-xs text-muted-foreground">Job Position</p><p className="text-sm font-medium">{profileData.job_position || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Department</p><p className="text-sm font-medium">{profileData.department || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Location</p><p className="text-sm font-medium">{profileData.location || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Phone</p><p className="text-sm font-medium">{profileData.phone || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Address</p><p className="text-sm font-medium">{profileData.address || "—"}</p></div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Full Name" value={profileData.full_name} />
+            <Field label="Job Position" value={profileData.job_position} />
+            <Field label="Department" value={profileData.department} />
+            <Field label="Location" value={profileData.location} />
+            <Field label="Phone" value={profileData.phone} />
+            <Field label="Address" value={profileData.address} />
           </div>
         );
       case "resume":
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Resume URL</p><p className="truncate text-sm font-medium">{profileData.resume_url || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Date of Joining</p><p className="text-sm font-medium">{profileData.date_of_joining || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Bank Account Number</p><p className="text-sm font-medium">{profileData.bank_account_number || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Bank Name</p><p className="text-sm font-medium">{profileData.bank_name || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">IFSC Code</p><p className="text-sm font-medium">{profileData.ifsc_code || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">UAN No</p><p className="text-sm font-medium">{profileData.uan_no || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">PAN No</p><p className="text-sm font-medium">{profileData.pan_no || "—"}</p></div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Resume URL" value={profileData.resume_url} fullWidth />
+            <Field label="Date of Joining" value={profileData.date_of_joining} />
+            <Field label="Bank Account Number" value={profileData.bank_account_number} />
+            <Field label="Bank Name" value={profileData.bank_name} />
+            <Field label="IFSC Code" value={profileData.ifsc_code} />
+            <Field label="UAN No" value={profileData.uan_no} />
+            <Field label="PAN No" value={profileData.pan_no} />
           </div>
         );
       case "privateInfo":
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div><p className="text-xs text-muted-foreground">Date of Birth</p><p className="text-sm font-medium">{profileData.date_of_birth || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Nationality</p><p className="text-sm font-medium">{profileData.nationality || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Gender</p><p className="text-sm font-medium">{profileData.gender || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Marital Status</p><p className="text-sm font-medium">{profileData.marital_status || "—"}</p></div>
-            <div><p className="text-xs text-muted-foreground">Personal Email</p><p className="text-sm font-medium">{profileData.personal_email || "—"}</p></div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Date of Birth" value={profileData.date_of_birth} />
+            <Field label="Nationality" value={profileData.nationality} />
+            <Field label="Gender" value={profileData.gender} />
+            <Field label="Marital Status" value={profileData.marital_status} />
+            <Field label="Personal Email" value={profileData.personal_email} />
           </div>
         );
       case "skills":
         return (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Skills</p>
+            <p className="text-xs font-medium text-muted-foreground">Skills</p>
             {profileData.skills && profileData.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {profileData.skills.map((skill: string, idx: number) => (
-                  <span key={idx} className="rounded-lg bg-muted px-3 py-1 text-sm">{skill}</span>
+                  <span key={idx} className="rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 px-3 py-1 text-sm font-semibold text-white shadow-sm">{skill}</span>
                 ))}
               </div>
             ) : (
@@ -1019,13 +1044,13 @@ export default function App() {
         );
       case "about":
         return (
-          <div className="space-y-2">
-            <p className="text-sm whitespace-pre-wrap">{profileData.about || "No about information."}</p>
+          <div className="rounded-xl border border-border/40 bg-gradient-to-br from-pink-500/5 to-transparent p-4">
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">{profileData.about || "No about information."}</p>
           </div>
         );
       case "salary":
         return (
-          <div className="space-y-2">
+          <div className="rounded-xl border border-border/40 bg-gradient-to-br from-pink-500/5 to-transparent p-4">
             <p className="text-sm text-muted-foreground">Salary details are managed in the Salary section.</p>
           </div>
         );
@@ -1391,9 +1416,9 @@ export default function App() {
 
     return (
       <div>
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted-foreground">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-            <div key={d} className="py-1">{d}</div>
+            <div key={d} className="rounded-lg py-2 text-[10px] uppercase tracking-wider">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
@@ -1406,17 +1431,17 @@ export default function App() {
             return (
               <div
                 key={cell.dateStr}
-                className={`flex min-h-14 flex-col items-center rounded-lg border border-border/40 p-1 ${isWeekend ? "bg-muted/30 opacity-60" : ""} ${isToday ? "ring-2 ring-primary" : ""}`}
+                className={`flex min-h-16 flex-col items-center justify-center rounded-xl border p-1.5 transition-all ${isWeekend ? "border-border/20 bg-muted/20 opacity-60" : "border-border/40 bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"} ${isToday ? "ring-2 ring-orange-400" : ""}`}
               >
-                <span className="text-xs">{cell.day}</span>
-                <div className="mt-1 flex flex-wrap justify-center gap-1">
+                <span className={`text-xs font-bold ${isToday ? "text-orange-500" : ""}`}>{cell.day}</span>
+                <div className="mt-1.5 flex flex-wrap justify-center gap-1">
                   {onLeave(cell.dateStr) && (
-                    <span title="Approved leave" className="h-2 w-2 rounded-full bg-blue-500" />
+                    <span title="Approved leave" className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 shadow-sm" />
                   )}
                   {role === "employee" && att && (
                     <span
                       title={att.status}
-                      className={`h-2 w-2 rounded-full ${getStatusDotClass(att.status)}`}
+                      className={`h-2.5 w-2.5 rounded-full shadow-sm ${getStatusDotClass(att.status)}`}
                     />
                   )}
                 </div>
@@ -1424,12 +1449,12 @@ export default function App() {
             );
           })}
         </div>
-        <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Approved leave</span>
+        <div className="mt-3 flex flex-wrap gap-4 text-xs font-medium text-muted-foreground">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" /> Approved leave</span>
           {role === "employee" && (
             <>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Present</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-yellow-500" /> Absent</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Present</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Absent</span>
             </>
           )}
         </div>
@@ -1722,29 +1747,32 @@ export default function App() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  const navItems: { key: NavKey; label: string; icon: ReactNode; adminOnly?: boolean }[] = [
-    { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
-    { key: "attendance", label: "Attendance", icon: <CalendarCheck size={16} /> },
-    { key: "leave", label: "Leave", icon: <CalendarDays size={16} /> },
-    { key: "payslip", label: "Payslip", icon: <Wallet size={16} /> },
-    { key: "announcements", label: "Announcements", icon: <Megaphone size={16} /> },
-    { key: "documents", label: "Documents", icon: <FolderOpen size={16} /> },
-    { key: "directory", label: "Directory", icon: <Users size={16} />, adminOnly: true },
-    { key: "profile", label: "Profile", icon: <User size={16} /> },
-    { key: "notifications", label: "Notifications", icon: <Bell size={16} /> },
+  const navItems: { key: NavKey; label: string; icon: ReactNode; adminOnly?: boolean; accent: string }[] = [
+    { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} />, accent: "from-blue-500 to-purple-500" },
+    { key: "attendance", label: "Attendance", icon: <CalendarCheck size={18} />, accent: "from-emerald-500 to-teal-500" },
+    { key: "leave", label: "Leave", icon: <CalendarDays size={18} />, accent: "from-orange-500 to-amber-500" },
+    { key: "payslip", label: "Payslip", icon: <Wallet size={18} />, accent: "from-pink-500 to-rose-500" },
+    { key: "announcements", label: "Announcements", icon: <Megaphone size={18} />, accent: "from-violet-500 to-fuchsia-500" },
+    { key: "documents", label: "Documents", icon: <FolderOpen size={18} />, accent: "from-cyan-500 to-blue-500" },
+    { key: "directory", label: "Directory", icon: <Users size={18} />, adminOnly: true, accent: "from-indigo-500 to-purple-500" },
+    { key: "profile", label: "Profile", icon: <User size={18} />, accent: "from-pink-400 to-rose-500" },
+    { key: "notifications", label: "Notifications", icon: <Bell size={18} />, accent: "from-teal-400 to-cyan-500" },
   ];
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || role === "admin");
+  const activeNavItem = navItems.find((item) => item.key === activeNav);
 
   // ================= RENDER =================
 
   if (authState === "loading") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
-          <CalendarCheck size={26} />
+      <main className="df-gradient-login relative flex min-h-screen flex-col items-center justify-center gap-5 overflow-hidden text-foreground">
+        <div className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl df-blob" />
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-purple-500/20 blur-3xl df-blob" style={{ animationDelay: "-5s" }} />
+        <div className="df-float flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white shadow-2xl shadow-purple-500/30">
+          <CalendarCheck size={32} />
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400/30 border-t-blue-500" />
           Loading Dayflow…
         </div>
       </main>
@@ -1754,42 +1782,43 @@ export default function App() {
   if (authState === "login") {
     return (
       <main className="df-gradient-login relative flex min-h-screen items-center justify-center overflow-hidden p-4 text-foreground">
-        <div className="pointer-events-none absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
-        <div className="df-scale-in w-full max-w-md space-y-6 rounded-2xl border border-border/60 bg-card/80 p-8 shadow-xl backdrop-blur-xl">
+        <div className="pointer-events-none absolute -top-40 -right-40 h-[28rem] w-[28rem] rounded-full bg-blue-500/20 blur-3xl df-blob" />
+        <div className="pointer-events-none absolute top-1/3 -left-40 h-[24rem] w-[24rem] rounded-full bg-purple-500/20 blur-3xl df-blob" style={{ animationDelay: "-7s" }} />
+        <div className="pointer-events-none absolute -bottom-40 -right-20 h-[26rem] w-[26rem] rounded-full bg-pink-500/15 blur-3xl df-blob" style={{ animationDelay: "-12s" }} />
+        <div className="df-scale-in df-float w-full max-w-md space-y-6 rounded-3xl border border-white/40 bg-white/80 p-8 shadow-2xl shadow-purple-500/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/80">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
-              <CalendarCheck size={28} />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl shadow-purple-500/30">
+              <CalendarCheck size={32} />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Dayflow</h1>
+              <h1 className="text-3xl font-bold tracking-tight df-gradient-text">Dayflow</h1>
               <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
             </div>
           </div>
           {sessionExpired && (
-            <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 dark:text-yellow-400" role="alert">
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400" role="alert">
               Your session has expired. Please sign in again.
-            </p>
+            </div>
           )}
           {error && <ErrorMessage message={error} />}
           {success && <SuccessMessage message={success} />}
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground" htmlFor="login-email">Email</label>
-              <Input id="login-email" placeholder="you@company.com" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+              <Input id="login-email" placeholder="you@company.com" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground" htmlFor="login-password">Password</label>
-              <Input id="login-password" placeholder="••••••••" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
+              <Input id="login-password" placeholder="••••••••" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
             </div>
           </div>
-          <Button className="h-11 w-full" onClick={handleLogin} disabled={loading}>
+          <Button className="h-11 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:opacity-90 active:scale-[0.98]" onClick={handleLogin} disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
           </Button>
           <div className="flex flex-col gap-2 text-center text-sm">
             <button
               type="button"
-              className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              className="font-medium text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded dark:text-blue-400"
               onClick={() => { setAuthState("forgotPassword"); setError(""); setSuccess(""); }}
             >
               Forgot password?
@@ -1810,14 +1839,15 @@ export default function App() {
   if (authState === "forgotPassword" || authState === "resendVerification" || authState === "resetPassword" || authState === "changePassword") {
     return (
       <main className="df-gradient-login relative flex min-h-screen items-center justify-center overflow-hidden p-4 text-foreground">
-        <div className="pointer-events-none absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
-        <div className="df-scale-in w-full max-w-md space-y-6 rounded-2xl border border-border/60 bg-card/80 p-8 shadow-xl backdrop-blur-xl">
+        <div className="pointer-events-none absolute -top-40 -right-40 h-[28rem] w-[28rem] rounded-full bg-blue-500/20 blur-3xl df-blob" />
+        <div className="pointer-events-none absolute top-1/3 -left-40 h-[24rem] w-[24rem] rounded-full bg-purple-500/20 blur-3xl df-blob" style={{ animationDelay: "-7s" }} />
+        <div className="pointer-events-none absolute -bottom-40 -right-20 h-[26rem] w-[26rem] rounded-full bg-pink-500/15 blur-3xl df-blob" style={{ animationDelay: "-12s" }} />
+        <div className="df-scale-in w-full max-w-md space-y-6 rounded-3xl border border-white/40 bg-white/80 p-8 shadow-2xl shadow-purple-500/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/80">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
-              <CalendarCheck size={28} />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl shadow-purple-500/30">
+              <CalendarCheck size={32} />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-2xl font-bold tracking-tight df-gradient-text">
               {authState === "forgotPassword" && "Reset password"}
               {authState === "resendVerification" && "Resend verification"}
               {authState === "resetPassword" && "Set a new password"}
@@ -1828,28 +1858,28 @@ export default function App() {
           {success && <SuccessMessage message={success} />}
           {authState === "forgotPassword" && (
             <div className="space-y-4">
-              <Input placeholder="Email" type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} />
-              <Button className="h-11 w-full" onClick={handleForgotPassword} disabled={loading}>{loading ? "Sending…" : "Send reset email"}</Button>
+              <Input placeholder="Email" type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
+              <Button className="h-11 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:opacity-90 active:scale-[0.98]" onClick={handleForgotPassword} disabled={loading}>{loading ? "Sending…" : "Send reset email"}</Button>
             </div>
           )}
           {authState === "resendVerification" && (
             <div className="space-y-4">
-              <Input placeholder="Email" type="email" value={resendEmail} onChange={(e) => setResendEmail(e.target.value)} />
-              <Button className="h-11 w-full" onClick={handleResendVerification} disabled={loading}>{loading ? "Sending…" : "Resend verification"}</Button>
+              <Input placeholder="Email" type="email" value={resendEmail} onChange={(e) => setResendEmail(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
+              <Button className="h-11 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:opacity-90 active:scale-[0.98]" onClick={handleResendVerification} disabled={loading}>{loading ? "Sending…" : "Resend verification"}</Button>
             </div>
           )}
           {authState === "resetPassword" && (
             <div className="space-y-4">
-              <Input placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              <Input placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-              <Button className="h-11 w-full" onClick={handleResetPassword} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
+              <Input placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
+              <Input placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
+              <Button className="h-11 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:opacity-90 active:scale-[0.98]" onClick={handleResetPassword} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
             </div>
           )}
           {authState === "changePassword" && (
             <div className="space-y-4">
-              <Input placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              <Input placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-              <Button className="h-11 w-full" onClick={handlePasswordChange} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
+              <Input placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
+              <Input placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-10 bg-white/50 dark:bg-white/5" />
+              <Button className="h-11 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:opacity-90 active:scale-[0.98]" onClick={handlePasswordChange} disabled={loading}>{loading ? "Updating…" : "Update password"}</Button>
               <Button variant="outline" className="h-11 w-full" onClick={handleLogout}>Log out</Button>
             </div>
           )}
@@ -1861,19 +1891,30 @@ export default function App() {
 
   // Authenticated view with sidebar navigation
   return (
-    <main className="min-h-screen bg-background text-foreground md:flex">
+    <main className="relative min-h-screen overflow-hidden bg-background text-foreground md:flex">
+      {/* Animated background blobs */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-[36rem] w-[36rem] rounded-full bg-blue-500/10 blur-3xl df-blob" />
+        <div className="absolute top-1/4 -left-40 h-[30rem] w-[30rem] rounded-full bg-purple-500/10 blur-3xl df-blob" style={{ animationDelay: "-8s" }} />
+        <div className="absolute -bottom-40 right-1/4 h-[32rem] w-[32rem] rounded-full bg-pink-500/8 blur-3xl df-blob" style={{ animationDelay: "-15s" }} />
+        <div className="absolute top-2/3 right-10 h-[24rem] w-[24rem] rounded-full bg-emerald-500/8 blur-3xl df-blob" style={{ animationDelay: "-22s" }} />
+      </div>
+
       {/* Sidebar */}
-      <aside className="df-gradient-sidebar flex shrink-0 flex-col border-b border-border/60 p-4 md:sticky md:top-0 md:min-h-screen md:w-64 md:border-b-0 md:border-r">
-        <div className="mb-5 flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
-            <CalendarCheck size={18} />
+      <aside className="df-gradient-sidebar flex shrink-0 flex-col border-b border-border/40 p-4 md:sticky md:top-0 md:min-h-screen md:w-64 md:border-b-0 md:border-r">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25">
+            <CalendarCheck size={22} />
           </div>
-          <span className="text-lg font-semibold tracking-tight">Dayflow</span>
+          <div>
+            <span className="block text-lg font-bold tracking-tight df-gradient-text">Dayflow</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">HRMS Workspace</span>
+          </div>
         </div>
-        <div className="mb-4 flex items-center gap-3 rounded-xl bg-muted/50 p-3">
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-white/40 bg-white/40 p-3 shadow-sm dark:border-white/10 dark:bg-white/5">
           <Avatar src={profileData?.profile_picture_url} name={profileData?.full_name} size="md" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{profileData?.full_name || "…"}</p>
+            <p className="truncate text-sm font-bold">{profileData?.full_name || "…"}</p>
             <p className="truncate text-xs capitalize text-muted-foreground">{role}</p>
           </div>
         </div>
@@ -1883,26 +1924,32 @@ export default function App() {
               key={item.key}
               type="button"
               onClick={() => setActiveNav(item.key)}
-              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              className={`group relative flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 activeNav === item.key
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? `bg-gradient-to-r ${item.accent} text-white shadow-md`
+                  : "text-muted-foreground hover:bg-white/60 hover:text-foreground dark:hover:bg-white/10"
               }`}
+              style={activeNav === item.key ? { boxShadow: `0 4px 20px -6px ${item.accent.includes("blue") ? "rgba(59,130,246,0.35)" : item.accent.includes("emerald") ? "rgba(16,185,129,0.35)" : item.accent.includes("orange") ? "rgba(249,115,22,0.35)" : item.accent.includes("pink") || item.accent.includes("rose") ? "rgba(236,72,153,0.35)" : item.accent.includes("teal") || item.accent.includes("cyan") ? "rgba(20,184,166,0.35)" : "rgba(139,92,246,0.35)"}` } : undefined}
               aria-current={activeNav === item.key ? "page" : undefined}
             >
-              {item.icon}
+              <span className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all ${activeNav === item.key ? "bg-white/20" : `bg-gradient-to-br ${item.accent} text-white shadow-sm`} group-hover:scale-105`}>
+                {item.icon}
+              </span>
               <span>{item.label}</span>
+              {activeNav === item.key && <span className="absolute right-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-white/80" />}
               {item.key === "notifications" && unreadCount > 0 && (
-                <span className="ml-auto rounded-full bg-red-500 px-1.5 text-xs font-medium text-white">{unreadCount}</span>
+                <span className="ml-auto rounded-full bg-gradient-to-r from-red-500 to-pink-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">{unreadCount}</span>
               )}
             </button>
           ))}
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-0 flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:mt-auto"
+            className="mt-0 flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-all hover:bg-red-500/10 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:mt-auto"
           >
-            <LogOut size={16} />
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-500">
+              <LogOut size={18} />
+            </span>
             <span>Log out</span>
           </button>
         </nav>
@@ -1910,128 +1957,159 @@ export default function App() {
 
       {/* Content */}
       <div className="min-w-0 flex-1 p-4 md:p-8">
+        {/* Header */}
+        <header className="df-gradient-header mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/40 bg-white/60 px-5 py-3 shadow-sm backdrop-blur-xl dark:bg-slate-900/60">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">
+              <span className="df-gradient-text">{activeNavItem?.label || "Dashboard"}</span>
+            </h1>
+            <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveNav("notifications")}
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/40 bg-white/60 text-muted-foreground transition-all hover:bg-white hover:text-foreground dark:bg-white/5 dark:hover:bg-white/10"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />}
+            </button>
+            <Avatar src={profileData?.profile_picture_url} name={profileData?.full_name} size="sm" />
+          </div>
+        </header>
+
         <div className="mx-auto max-w-5xl space-y-8 df-fade-in">
           {/* DASHBOARD */}
           {activeNav === "dashboard" && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-semibold tracking-tight">{getGreeting()}</h2>
+              <h2 className="text-2xl font-bold tracking-tight">{getGreeting()}</h2>
 
               {dashboardLoading ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Skeleton className="h-28" />
-                  <Skeleton className="h-28" />
-                  <Skeleton className="h-28" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
                 </div>
               ) : role === "employee" && empDashboardData ? (
                 <>
-                  <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
-                    <h3 className="mb-3 text-sm font-semibold">Quick Check-In</h3>
-                    {todayAttendance?.check_in ? (
-                      <p className="text-sm text-muted-foreground">
-                        Checked in at <span className="font-medium text-foreground">{new Date(todayAttendance.check_in).toLocaleTimeString()}</span>
-                      </p>
-                    ) : (
-                      <Button onClick={handleCheckIn} disabled={checkInLoading}>
-                        {checkInLoading ? "Checking in…" : "Check In"}
-                      </Button>
-                    )}
+                  <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-blue-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                    <div className="flex items-center gap-4">
+                      <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-blue">
+                        <CalendarCheck size={22} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold">Quick Check-In</h3>
+                        {todayAttendance?.check_in ? (
+                          <p className="text-sm text-muted-foreground">
+                            Checked in at <span className="font-bold text-foreground">{new Date(todayAttendance.check_in).toLocaleTimeString()}</span>
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Start your work day</p>
+                        )}
+                      </div>
+                      {!todayAttendance?.check_in && (
+                        <Button onClick={handleCheckIn} disabled={checkInLoading} className="bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:opacity-90 active:scale-95">
+                          {checkInLoading ? "Checking in…" : "Check In"}
+                        </Button>
+                      )}
+                    </div>
                   </Card>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-600">
-                        <CalendarCheck size={20} />
+                    <Card className="df-kpi-gradient df-accent-emerald rounded-2xl p-6 shadow-lg shadow-emerald-500/20 df-card-hover">
+                      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm">
+                        <CalendarCheck size={22} />
                       </div>
                       <p className="text-3xl font-bold tracking-tight">{empDashboardData.presentCount}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">Present Days</p>
+                      <p className="mt-1 text-sm font-medium text-white/85">Present Days</p>
                     </Card>
-                    <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
-                        <CalendarDays size={20} />
+                    <Card className="df-kpi-gradient df-accent-blue rounded-2xl p-6 shadow-lg shadow-blue-500/20 df-card-hover">
+                      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm">
+                        <CalendarDays size={22} />
                       </div>
                       <p className="text-3xl font-bold tracking-tight">{empDashboardData.leaveDaysSum}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">Leave Days</p>
+                      <p className="mt-1 text-sm font-medium text-white/85">Leave Days</p>
                     </Card>
-                    <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-600">
-                        <Bell size={20} />
+                    <Card className="df-kpi-gradient df-accent-orange rounded-2xl p-6 shadow-lg shadow-orange-500/20 df-card-hover">
+                      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm">
+                        <Bell size={22} />
                       </div>
                       <p className="text-3xl font-bold tracking-tight">{empDashboardData.pendingCount}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">Pending Leaves</p>
+                      <p className="mt-1 text-sm font-medium text-white/85">Pending Leaves</p>
                     </Card>
                   </div>
 
-                  <Card className="p-6 shadow-sm">
-                    <h3 className="mb-4 text-sm font-semibold">Last 7 Days</h3>
-                    <div className="flex h-32 items-end gap-2">
+                  <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-blue-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                    <h3 className="mb-4 text-sm font-bold">Last 7 Days</h3>
+                    <div className="flex h-36 items-end gap-3">
                       {empDashboardData.weekDays.map((day: any) => (
-                        <div key={day.date} className="flex flex-1 flex-col items-center gap-1.5">
-                          <div className="flex w-full flex-1 items-end">
+                        <div key={day.date} className="group flex flex-1 flex-col items-center gap-2">
+                          <div className="relative flex w-full flex-1 items-end overflow-hidden rounded-t-xl bg-muted/40">
                             <div
-                              className={`w-full rounded-t-md transition-all ${day.status === "present" ? "bg-green-500" : day.status === "absent" ? "bg-yellow-500" : day.status === "half_day" ? "bg-orange-500" : day.status === "leave" ? "bg-blue-500" : "bg-muted-foreground/30"}`}
-                              style={{ height: `${day.status === "present" ? 48 : day.status === "absent" ? 24 : day.status === "half_day" ? 36 : day.status === "leave" ? 48 : 12}px` }}
+                              className={`w-full rounded-t-xl transition-all duration-500 group-hover:opacity-90 ${day.status === "present" ? "bg-gradient-to-t from-emerald-500 to-emerald-400" : day.status === "absent" ? "bg-gradient-to-t from-amber-500 to-amber-400" : day.status === "half_day" ? "bg-gradient-to-t from-orange-500 to-orange-400" : day.status === "leave" ? "bg-gradient-to-t from-blue-500 to-cyan-400" : "bg-gradient-to-t from-muted-foreground/30 to-muted-foreground/10"}`}
+                              style={{ height: `${day.status === "present" ? 100 : day.status === "absent" ? 45 : day.status === "half_day" ? 70 : day.status === "leave" ? 100 : 20}%` }}
                             />
                           </div>
-                          <span className="text-xs text-muted-foreground">{new Date(day.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+                          <span className="text-xs font-medium text-muted-foreground">{new Date(day.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
                         </div>
                       ))}
                     </div>
                   </Card>
 
-                  <Card className="p-6 shadow-sm">
-                    <h3 className="mb-3 text-sm font-semibold">Quick Actions</h3>
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => setActiveNav("leave")}><CalendarDays size={16} /> Apply for Leave</Button>
-                      <Button variant="outline" onClick={() => setActiveNav("profile")}><User size={16} /> View Profile</Button>
-                      <Button variant="outline" onClick={() => setActiveNav("attendance")}><CalendarCheck size={16} /> View Attendance</Button>
+                  <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-blue-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                    <h3 className="mb-4 text-sm font-bold">Quick Actions</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <Button variant="outline" onClick={() => setActiveNav("leave")} className="gap-2 rounded-xl border-blue-500/20 bg-blue-500/5 text-blue-700 hover:bg-blue-500/10 hover:text-blue-800 dark:text-blue-300"><CalendarDays size={16} /> Apply for Leave</Button>
+                      <Button variant="outline" onClick={() => setActiveNav("profile")} className="gap-2 rounded-xl border-pink-500/20 bg-pink-500/5 text-pink-700 hover:bg-pink-500/10 hover:text-pink-800 dark:text-pink-300"><User size={16} /> View Profile</Button>
+                      <Button variant="outline" onClick={() => setActiveNav("attendance")} className="gap-2 rounded-xl border-emerald-500/20 bg-emerald-500/5 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:text-emerald-300"><CalendarCheck size={16} /> View Attendance</Button>
                     </div>
                   </Card>
                 </>
               ) : role === "admin" ? (
                 <>
-                  <Card className="p-6 shadow-sm">
-                    <h3 className="mb-4 text-sm font-semibold">Employee Status Today</h3>
+                  <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-blue-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                    <h3 className="mb-4 text-sm font-bold">Employee Status Today</h3>
                     {dashboardLoading ? (
                       <Skeleton className="h-24" />
                     ) : adminDashboardData.length === 0 ? (
-                      <EmptyState icon="👥" message="No employees found." />
+                      <EmptyState icon="👥" message="No employees found." accent="purple" />
                     ) : (
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                         {adminDashboardData.map((emp: any) => (
-                          <div key={emp.user_id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/50">
-                            <span className={`inline-block h-3 w-3 shrink-0 rounded-full ${getStatusDotClass(emp.todayStatus)}`} />
+                          <div key={emp.user_id} className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/30 p-3 transition-all hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-sm">
+                            <span className={`inline-block h-3 w-3 shrink-0 rounded-full shadow-sm ${getStatusDotClass(emp.todayStatus)}`} />
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">{emp.full_name}</p>
+                              <p className="truncate text-sm font-bold">{emp.full_name}</p>
                               <p className="truncate text-xs text-muted-foreground">{emp.department || "No department"}</p>
                             </div>
-                            <span className="ml-auto shrink-0 text-xs text-muted-foreground">{getStatusLabel(emp.todayStatus)}</span>
+                            <span className="ml-auto shrink-0 text-xs font-semibold text-muted-foreground">{getStatusLabel(emp.todayStatus)}</span>
                           </div>
                         ))}
                       </div>
                     )}
                   </Card>
 
-                  <Card className="p-6 shadow-sm">
-                    <h3 className="mb-4 text-sm font-semibold">Pending Approvals</h3>
+                  <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-orange-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                    <h3 className="mb-4 text-sm font-bold">Pending Approvals</h3>
                     {leaveList.filter((l) => l.status === "pending").length === 0 ? (
-                      <EmptyState icon="📝" message="No pending leave requests." />
+                      <EmptyState icon="📝" message="No pending leave requests." accent="orange" />
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {leaveList.filter((l) => l.status === "pending").slice(0,5).map((leave) => (
-                          <div key={leave.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                          <div key={leave.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 p-3">
                             <div>
-                              <p className="text-sm font-medium">{leave.users?.profiles?.full_name || leave.users?.email || "Unknown"}</p>
+                              <p className="text-sm font-bold">{leave.users?.profiles?.full_name || leave.users?.email || "Unknown"}</p>
                               <p className="text-xs text-muted-foreground">{leave.leave_type} · {leave.start_date} → {leave.end_date}</p>
                             </div>
-                            <div className="flex gap-1">
-                              <Button size="sm" onClick={() => approveLeave(leave.id)} disabled={approvalProcessing === leave.id}>Approve</Button>
-                              <Button size="sm" variant="outline" onClick={() => rejectLeave(leave.id)} disabled={approvalProcessing === leave.id}>Reject</Button>
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => approveLeave(leave.id)} disabled={approvalProcessing === leave.id} className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20 hover:opacity-90 active:scale-95">Approve</Button>
+                              <Button size="sm" variant="outline" onClick={() => rejectLeave(leave.id)} disabled={approvalProcessing === leave.id} className="border-red-500/20 text-red-600 hover:bg-red-500/10 hover:text-red-700">Reject</Button>
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
-                    <Button className="mt-3" variant="outline" onClick={() => setActiveNav("leave")}>View All Leaves</Button>
+                    <Button className="mt-4 rounded-xl" variant="outline" onClick={() => setActiveNav("leave")}>View All Leaves</Button>
                   </Card>
                 </>
               ) : null}
@@ -2041,67 +2119,73 @@ export default function App() {
           {/* ATTENDANCE */}
           {activeNav === "attendance" && (
             <div className="space-y-6">
-              <Card className="p-6 shadow-sm">
-                <h2 className="mb-3 text-sm font-semibold">My Attendance Today</h2>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-emerald-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-emerald">
+                    <CalendarCheck size={22} />
+                  </div>
+                  <h2 className="text-lg font-bold">My Attendance Today</h2>
+                </div>
                 {!todayAttendance ? (
-                  <Button onClick={handleCheckIn} disabled={checkInLoading}>{checkInLoading ? "Checking in…" : "Check In"}</Button>
+                  <Button onClick={handleCheckIn} disabled={checkInLoading} className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:opacity-90 active:scale-95">
+                    {checkInLoading ? "Checking in…" : "Check In"}
+                  </Button>
                 ) : todayAttendance.check_out ? (
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-muted/50 p-3">
-                      <p className="text-xs text-muted-foreground">Check-in</p>
-                      <p className="text-sm font-medium">{new Date(todayAttendance.check_in).toLocaleTimeString()}</p>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-3">
-                      <p className="text-xs text-muted-foreground">Check-out</p>
-                      <p className="text-sm font-medium">{new Date(todayAttendance.check_out).toLocaleTimeString()}</p>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-3">
-                      <p className="text-xs text-muted-foreground">Work hours</p>
-                      <p className="text-sm font-medium">{todayAttendance.work_hours?.toFixed(2)}h</p>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-3">
-                      <p className="text-xs text-muted-foreground">Extra hours</p>
-                      <p className="text-sm font-medium">{todayAttendance.extra_hours?.toFixed(2)}h</p>
-                    </div>
+                    {[
+                      { label: "Check-in", value: new Date(todayAttendance.check_in).toLocaleTimeString() },
+                      { label: "Check-out", value: new Date(todayAttendance.check_out).toLocaleTimeString() },
+                      { label: "Work hours", value: `${todayAttendance.work_hours?.toFixed(2)}h` },
+                      { label: "Extra hours", value: `${todayAttendance.extra_hours?.toFixed(2)}h` },
+                    ].map((item) => (
+                      <div key={item.label} className="rounded-xl border border-border/40 bg-gradient-to-br from-emerald-500/5 to-transparent p-3">
+                        <p className="text-xs text-muted-foreground">{item.label}</p>
+                        <p className="text-sm font-bold">{item.value}</p>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">Checked in at <span className="font-medium text-foreground">{new Date(todayAttendance.check_in).toLocaleTimeString()}</span></p>
-                    <Button onClick={handleCheckOut} disabled={checkOutLoading}>{checkOutLoading ? "Checking out…" : "Check Out"}</Button>
+                    <p className="text-sm text-muted-foreground">Checked in at <span className="font-bold text-foreground">{new Date(todayAttendance.check_in).toLocaleTimeString()}</span></p>
+                    <Button onClick={handleCheckOut} disabled={checkOutLoading} className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:opacity-90 active:scale-95">
+                      {checkOutLoading ? "Checking out…" : "Check Out"}
+                    </Button>
                   </div>
                 )}
-                {checkInError && <ErrorMessage message={checkInError} />}
-                {checkInMessage && <SuccessMessage message={checkInMessage} />}
-                {checkOutError && <ErrorMessage message={checkOutError} />}
-                {checkOutMessage && <SuccessMessage message={checkOutMessage} />}
+                <div className="mt-4 space-y-2">
+                  {checkInError && <ErrorMessage message={checkInError} />}
+                  {checkInMessage && <SuccessMessage message={checkInMessage} />}
+                  {checkOutError && <ErrorMessage message={checkOutError} />}
+                  {checkOutMessage && <SuccessMessage message={checkOutMessage} />}
+                </div>
               </Card>
 
               {role === "employee" && (
-                <Card className="p-6 shadow-sm">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">Monthly Attendance</h3>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>←</Button>
-                      <span className="min-w-[100px] text-center text-sm font-medium">{attendanceMonth}</span>
-                      <Button variant="outline" size="sm" onClick={() => changeMonth(1)}>→</Button>
+                <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-emerald-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-sm font-bold">Monthly Attendance</h3>
+                    <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 p-1">
+                      <Button variant="ghost" size="sm" onClick={() => changeMonth(-1)} className="h-7 w-7 rounded-lg p-0">←</Button>
+                      <span className="min-w-[110px] text-center text-sm font-bold">{monthLabel(attendanceMonth)}</span>
+                      <Button variant="ghost" size="sm" onClick={() => changeMonth(1)} className="h-7 w-7 rounded-lg p-0">→</Button>
                     </div>
                   </div>
                   {attendanceListLoading ? (
                     <div className="space-y-2">
-                      <Skeleton className="h-12" />
-                      <Skeleton className="h-12" />
-                      <Skeleton className="h-12" />
+                      <Skeleton className="h-14" />
+                      <Skeleton className="h-14" />
+                      <Skeleton className="h-14" />
                     </div>
                   ) : attendanceListError ? (
                     <ErrorMessage message={attendanceListError} />
                   ) : attendanceList.length === 0 ? (
-                    <EmptyState icon="🗓️" message="No attendance records for this month." actionLabel="Check In" onAction={handleCheckIn} />
+                    <EmptyState icon="🗓️" message="No attendance records for this month." actionLabel="Check In" onAction={handleCheckIn} accent="emerald" />
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {attendanceList.map((record) => (
-                        <div key={record.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                        <div key={record.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 p-3 transition-all hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm">
                           <div>
-                            <p className="text-sm font-medium">{record.date}</p>
+                            <p className="text-sm font-bold">{record.date}</p>
                             <p className="text-xs text-muted-foreground">
                               {record.check_in ? `In: ${new Date(record.check_in).toLocaleTimeString()}` : "No check-in"}
                               {record.check_out ? ` · Out: ${new Date(record.check_out).toLocaleTimeString()}` : ""}
@@ -2117,22 +2201,20 @@ export default function App() {
 
               {role === "admin" && (
                 <>
-                  <Card className="p-6 shadow-sm">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold">Today's Attendance (All Employees)</h3>
+                  <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-emerald-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-bold">Today's Attendance (All Employees)</h3>
                       {!confirmBulkAbsent ? (
-                        <Button variant="outline" size="sm" onClick={() => setConfirmBulkAbsent(true)}>
+                        <Button variant="outline" size="sm" onClick={() => setConfirmBulkAbsent(true)} className="rounded-xl border-amber-500/20 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-300">
                           Mark all absent who haven't checked in
                         </Button>
                       ) : (
-                        <div className="flex items-center gap-2 rounded-lg border border-border/60 p-3">
-                          <span className="text-xs">Mark all missing employees as absent for today?</span>
-                          <Button size="sm" onClick={bulkMarkAbsent} disabled={bulkAbsentLoading}>
+                        <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                          <span className="text-xs font-medium text-amber-800 dark:text-amber-300">Mark all missing employees as absent for today?</span>
+                          <Button size="sm" onClick={bulkMarkAbsent} disabled={bulkAbsentLoading} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:opacity-90 active:scale-95">
                             {bulkAbsentLoading ? "Marking…" : "Confirm"}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setConfirmBulkAbsent(false)} disabled={bulkAbsentLoading}>
-                            Cancel
-                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setConfirmBulkAbsent(false)} disabled={bulkAbsentLoading}>Cancel</Button>
                         </div>
                       )}
                     </div>
@@ -2143,13 +2225,13 @@ export default function App() {
                     ) : adminError ? (
                       <ErrorMessage message={adminError} />
                     ) : adminTodayList.length === 0 ? (
-                      <EmptyState icon="👥" message="No attendance records yet today." />
+                      <EmptyState icon="👥" message="No attendance records yet today." accent="emerald" />
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {adminTodayList.map((record) => (
-                          <div key={record.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                          <div key={record.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 p-3 transition-all hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm">
                             <div>
-                              <p className="text-sm font-medium">{record.users?.profiles?.full_name || record.users?.email || "Unknown"}</p>
+                              <p className="text-sm font-bold">{record.users?.profiles?.full_name || record.users?.email || "Unknown"}</p>
                               <p className="text-xs text-muted-foreground">
                                 {record.check_in ? `In: ${new Date(record.check_in).toLocaleTimeString()}` : "No check-in"}
                                 {record.check_out ? ` · Out: ${new Date(record.check_out).toLocaleTimeString()}` : ""}
@@ -2161,21 +2243,21 @@ export default function App() {
                       </div>
                     )}
                   </Card>
-                  <Card className="p-6 shadow-sm">
-                    <h3 className="mb-3 text-sm font-semibold">Monthly Summary ({attendanceMonth})</h3>
+                  <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-emerald-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                    <h3 className="mb-4 text-sm font-bold">Monthly Summary ({monthLabel(attendanceMonth)})</h3>
                     {adminLoading ? (
                       <Skeleton className="h-16" />
                     ) : adminMonthSummary ? (
-                      <div className="flex flex-wrap gap-4">
+                      <div className="flex flex-wrap gap-3">
                         {Object.entries(adminMonthSummary as Record<string, number>).map(([status, count]: [string, number]) => (
-                          <div key={status} className="flex items-center gap-2">
+                          <div key={status} className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/20 px-3 py-1.5">
                             <Badge className={getStatusBadgeClass(status)}>{status}</Badge>
-                            <span>{count}</span>
+                            <span className="text-sm font-bold">{count}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <EmptyState icon="📊" message="No summary available for this month." />
+                      <EmptyState icon="📊" message="No summary available for this month." accent="emerald" />
                     )}
                   </Card>
                 </>
@@ -2186,9 +2268,14 @@ export default function App() {
           {/* PROFILE */}
           {activeNav === "profile" && (
             <div className="space-y-6">
-              <Card className="p-6 shadow-sm">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Profile</h2>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-pink-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-pink">
+                      <User size={22} />
+                    </div>
+                    <h2 className="text-lg font-bold">Profile</h2>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -2198,30 +2285,31 @@ export default function App() {
                         setCpError("");
                         setCpSuccess("");
                       }}
+                      className="rounded-xl border-pink-500/20 bg-pink-500/5 text-pink-700 hover:bg-pink-500/10 hover:text-pink-800 dark:text-pink-300"
                     >
                       <KeyRound size={14} className="mr-1" />
                       Change Password
                     </Button>
                     {!editMode ? (
-                      <Button variant="outline" size="sm" onClick={startEditProfile}>Edit Profile</Button>
+                      <Button variant="outline" size="sm" onClick={startEditProfile} className="rounded-xl border-purple-500/20 bg-purple-500/5 text-purple-700 hover:bg-purple-500/10 hover:text-purple-800 dark:text-purple-300">Edit Profile</Button>
                     ) : (
                       <>
                         <Button variant="outline" size="sm" onClick={cancelEditProfile}>Cancel</Button>
-                        <Button size="sm" onClick={saveProfile} disabled={profileSaving}>{profileSaving ? "Saving…" : "Save"}</Button>
+                        <Button size="sm" onClick={saveProfile} disabled={profileSaving} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-500/20 hover:opacity-90 active:scale-95">{profileSaving ? "Saving…" : "Save"}</Button>
                       </>
                     )}
                   </div>
                 </div>
 
                 {showChangePassword && (
-                  <div className="mb-4 space-y-2 rounded-lg border border-border/60 p-3">
-                    <h3 className="text-sm font-semibold">Change Password</h3>
-                    <Input type="password" placeholder="Current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-                    <Input type="password" placeholder="New password" value={cpNewPassword} onChange={(e) => setCpNewPassword(e.target.value)} />
-                    <Input type="password" placeholder="Confirm new password" value={cpConfirmPassword} onChange={(e) => setCpConfirmPassword(e.target.value)} />
+                  <div className="mb-5 space-y-3 rounded-2xl border border-pink-500/20 bg-pink-500/5 p-4">
+                    <h3 className="text-sm font-bold">Change Password</h3>
+                    <Input type="password" placeholder="Current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="bg-white/50 dark:bg-white/5" />
+                    <Input type="password" placeholder="New password" value={cpNewPassword} onChange={(e) => setCpNewPassword(e.target.value)} className="bg-white/50 dark:bg-white/5" />
+                    <Input type="password" placeholder="Confirm new password" value={cpConfirmPassword} onChange={(e) => setCpConfirmPassword(e.target.value)} className="bg-white/50 dark:bg-white/5" />
                     {cpError && <ErrorMessage message={cpError} />}
                     {cpSuccess && <SuccessMessage message={cpSuccess} />}
-                    <Button size="sm" onClick={handleChangePasswordSubmit} disabled={cpLoading}>
+                    <Button size="sm" onClick={handleChangePasswordSubmit} disabled={cpLoading} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-500/20 hover:opacity-90 active:scale-95">
                       {cpLoading ? "Updating…" : "Update Password"}
                     </Button>
                   </div>
@@ -2230,7 +2318,7 @@ export default function App() {
                 {profileError && <ErrorMessage message={profileError} />}
                 {profileSuccess && <SuccessMessage message={profileSuccess} />}
 
-                <div className="mb-3 flex flex-wrap gap-1">
+                <div className="mb-4 flex flex-wrap gap-2">
                   {[
                     { key: "myProfile", label: "My Profile" },
                     { key: "resume", label: "Resume" },
@@ -2239,15 +2327,15 @@ export default function App() {
                     { key: "about", label: "About" },
                     ...(role === "admin" ? [{ key: "salary", label: "Salary Info" }] : []),
                   ].map((tab) => (
-                    <Button key={tab.key} variant={activeProfileTab === tab.key ? "default" : "outline"} size="sm" onClick={() => setActiveProfileTab(tab.key)}>
+                    <Button key={tab.key} variant={activeProfileTab === tab.key ? "default" : "outline"} size="sm" onClick={() => setActiveProfileTab(tab.key)} className={activeProfileTab === tab.key ? "rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-500/20" : "rounded-xl border-border/40 hover:bg-pink-500/5 hover:text-pink-700 dark:hover:text-pink-300"}>
                       {tab.label}
                     </Button>
                   ))}
                 </div>
 
                 {editMode ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-4 rounded-2xl border border-border/40 bg-muted/20 p-4">
                       <Avatar src={avatarPreview || profileForm.profile_picture_url} name={profileForm.full_name || profileData?.full_name} size="lg" />
                       <div className="space-y-1">
                         <input
@@ -2263,6 +2351,7 @@ export default function App() {
                           size="sm"
                           onClick={() => avatarInputRef.current?.click()}
                           disabled={avatarUploading}
+                          className="rounded-xl border-pink-500/20 bg-pink-500/5 text-pink-700 hover:bg-pink-500/10 hover:text-pink-800 dark:text-pink-300"
                         >
                           <Upload size={14} className="mr-1" />
                           {avatarUploading ? "Uploading…" : "Upload Picture"}
@@ -2272,31 +2361,31 @@ export default function App() {
                     </div>
                     {role === "admin" ? (
                       <>
-                        <Input name="full_name" placeholder="Full Name" value={profileForm.full_name} onChange={handleProfileInputChange} />
-                        <Input name="phone" placeholder="Phone" value={profileForm.phone} onChange={handleProfileInputChange} />
-                        <Input name="address" placeholder="Address" value={profileForm.address} onChange={handleProfileInputChange} />
-                        <Input name="job_position" placeholder="Job Position" value={profileForm.job_position} onChange={handleProfileInputChange} />
-                        <Input name="department" placeholder="Department" value={profileForm.department} onChange={handleProfileInputChange} />
-                        <Input name="location" placeholder="Location" value={profileForm.location} onChange={handleProfileInputChange} />
-                        <Input name="date_of_birth" placeholder="Date of Birth (YYYY-MM-DD)" value={profileForm.date_of_birth} onChange={handleProfileInputChange} />
-                        <Input name="nationality" placeholder="Nationality" value={profileForm.nationality} onChange={handleProfileInputChange} />
-                        <Input name="gender" placeholder="Gender" value={profileForm.gender} onChange={handleProfileInputChange} />
-                        <Input name="marital_status" placeholder="Marital Status" value={profileForm.marital_status} onChange={handleProfileInputChange} />
-                        <Input name="personal_email" placeholder="Personal Email" value={profileForm.personal_email} onChange={handleProfileInputChange} />
-                        <Input name="date_of_joining" placeholder="Date of Joining (YYYY-MM-DD)" value={profileForm.date_of_joining} onChange={handleProfileInputChange} />
-                        <Input name="bank_account_number" placeholder="Bank Account Number" value={profileForm.bank_account_number} onChange={handleProfileInputChange} />
-                        <Input name="bank_name" placeholder="Bank Name" value={profileForm.bank_name} onChange={handleProfileInputChange} />
-                        <Input name="ifsc_code" placeholder="IFSC Code" value={profileForm.ifsc_code} onChange={handleProfileInputChange} />
-                        <Input name="uan_no" placeholder="UAN No" value={profileForm.uan_no} onChange={handleProfileInputChange} />
-                        <Input name="pan_no" placeholder="PAN No" value={profileForm.pan_no} onChange={handleProfileInputChange} />
-                        <Input name="resume_url" placeholder="Resume URL" value={profileForm.resume_url} onChange={handleProfileInputChange} />
-                        <Input name="about" placeholder="About" value={profileForm.about} onChange={handleProfileInputChange} />
-                        <Input name="skills" placeholder="Skills (comma separated)" value={profileForm.skills} onChange={handleProfileInputChange} />
+                        <Input name="full_name" placeholder="Full Name" value={profileForm.full_name} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="phone" placeholder="Phone" value={profileForm.phone} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="address" placeholder="Address" value={profileForm.address} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="job_position" placeholder="Job Position" value={profileForm.job_position} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="department" placeholder="Department" value={profileForm.department} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="location" placeholder="Location" value={profileForm.location} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="date_of_birth" placeholder="Date of Birth (YYYY-MM-DD)" value={profileForm.date_of_birth} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="nationality" placeholder="Nationality" value={profileForm.nationality} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="gender" placeholder="Gender" value={profileForm.gender} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="marital_status" placeholder="Marital Status" value={profileForm.marital_status} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="personal_email" placeholder="Personal Email" value={profileForm.personal_email} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="date_of_joining" placeholder="Date of Joining (YYYY-MM-DD)" value={profileForm.date_of_joining} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="bank_account_number" placeholder="Bank Account Number" value={profileForm.bank_account_number} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="bank_name" placeholder="Bank Name" value={profileForm.bank_name} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="ifsc_code" placeholder="IFSC Code" value={profileForm.ifsc_code} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="uan_no" placeholder="UAN No" value={profileForm.uan_no} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="pan_no" placeholder="PAN No" value={profileForm.pan_no} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="resume_url" placeholder="Resume URL" value={profileForm.resume_url} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="about" placeholder="About" value={profileForm.about} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="skills" placeholder="Skills (comma separated)" value={profileForm.skills} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
                       </>
                     ) : (
                       <>
-                        <Input name="phone" placeholder="Phone" value={profileForm.phone} onChange={handleProfileInputChange} />
-                        <Input name="address" placeholder="Address" value={profileForm.address} onChange={handleProfileInputChange} />
+                        <Input name="phone" placeholder="Phone" value={profileForm.phone} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
+                        <Input name="address" placeholder="Address" value={profileForm.address} onChange={handleProfileInputChange} className="bg-white/50 dark:bg-white/5" />
                       </>
                     )}
                   </div>
@@ -2306,26 +2395,32 @@ export default function App() {
               </Card>
 
               {role === "admin" && activeProfileTab === "salary" && (
-                <Card className="p-6 shadow-sm">
-                  <h3 className="mb-3 text-sm font-semibold">Salary Configuration</h3>
-                  <div className="space-y-2">
-                    <Input name="wage_monthly" placeholder="Wage" value={salaryForm.wage_monthly} onChange={(e) => setSalaryForm({...salaryForm, wage_monthly: e.target.value})} />
-                    <Input name="effective_from" type="date" value={salaryForm.effective_from} onChange={(e) => setSalaryForm({...salaryForm, effective_from: e.target.value})} />
-                    <Button onClick={calculateSalaryPreview}>Calculate Preview</Button>
-                    <Button onClick={saveSalary} disabled={salarySaving}>{salarySaving ? "Saving…" : "Save"}</Button>
+                <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-pink-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                  <h3 className="mb-4 text-sm font-bold">Salary Configuration</h3>
+                  <div className="space-y-3">
+                    <Input name="wage_monthly" placeholder="Wage" value={salaryForm.wage_monthly} onChange={(e) => setSalaryForm({...salaryForm, wage_monthly: e.target.value})} className="bg-white/50 dark:bg-white/5" />
+                    <Input name="effective_from" type="date" value={salaryForm.effective_from} onChange={(e) => setSalaryForm({...salaryForm, effective_from: e.target.value})} className="bg-white/50 dark:bg-white/5" />
+                    <div className="flex gap-2">
+                      <Button onClick={calculateSalaryPreview} className="rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-500/20 hover:opacity-90 active:scale-95">Calculate Preview</Button>
+                      <Button onClick={saveSalary} disabled={salarySaving} className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md shadow-purple-500/20 hover:opacity-90 active:scale-95">{salarySaving ? "Saving…" : "Save"}</Button>
+                    </div>
                     {salaryError && <ErrorMessage message={salaryError} />}
                     {salarySuccess && <SuccessMessage message={salarySuccess} />}
                     {salaryPreview && (
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Basic</p><p className="font-medium">{salaryPreview.basic}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">HRA</p><p className="font-medium">{salaryPreview.hra}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Std Allowance</p><p className="font-medium">{salaryPreview.standard_allowance}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Performance Bonus</p><p className="font-medium">{salaryPreview.performance_bonus}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">LTA</p><p className="font-medium">{salaryPreview.lta}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Fixed Allowance</p><p className="font-medium">{salaryPreview.fixed_allowance}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">PF Employee</p><p className="font-medium">{salaryPreview.pf_employee}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">PF Employer</p><p className="font-medium">{salaryPreview.pf_employer}</p></div>
-                        <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-xs text-muted-foreground">Professional Tax</p><p className="font-medium">{salaryPreview.professional_tax}</p></div>
+                        {[
+                          { label: "Basic", value: salaryPreview.basic },
+                          { label: "HRA", value: salaryPreview.hra },
+                          { label: "Std Allowance", value: salaryPreview.standard_allowance },
+                          { label: "Performance Bonus", value: salaryPreview.performance_bonus },
+                          { label: "LTA", value: salaryPreview.lta },
+                          { label: "Fixed Allowance", value: salaryPreview.fixed_allowance },
+                          { label: "PF Employee", value: salaryPreview.pf_employee },
+                          { label: "PF Employer", value: salaryPreview.pf_employer },
+                          { label: "Professional Tax", value: salaryPreview.professional_tax },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-xl border border-border/40 bg-gradient-to-br from-pink-500/5 to-transparent px-3 py-2"><p className="text-xs text-muted-foreground">{item.label}</p><p className="font-bold">{item.value}</p></div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -2337,62 +2432,69 @@ export default function App() {
           {/* LEAVE */}
           {activeNav === "leave" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
-                    <CalendarDays size={20} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Card className="df-kpi-gradient df-accent-blue rounded-2xl p-6 shadow-lg shadow-blue-500/20 df-card-hover">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm">
+                    <CalendarDays size={22} />
                   </div>
                   <p className="text-3xl font-bold tracking-tight">{leaveBalances.paid}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Paid Time Off days</p>
+                  <p className="mt-1 text-sm font-medium text-white/85">Paid Time Off days</p>
                 </Card>
-                <Card className="p-6 shadow-sm df-card-hover hover:shadow-md">
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 text-red-600">
-                    <Wallet size={20} />
+                <Card className="df-kpi-gradient df-accent-orange rounded-2xl p-6 shadow-lg shadow-orange-500/20 df-card-hover">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm">
+                    <Wallet size={22} />
                   </div>
                   <p className="text-3xl font-bold tracking-tight">{leaveBalances.sick}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Sick Time Off days</p>
+                  <p className="mt-1 text-sm font-medium text-white/85">Sick Time Off days</p>
                 </Card>
               </div>
 
-              <Card className="p-6 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold">Apply for Leave</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <select className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" value={leaveForm.leave_type} onChange={(e) => setLeaveForm({...leaveForm, leave_type: e.target.value})}>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-orange-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-orange">
+                    <CalendarDays size={22} />
+                  </div>
+                  <h3 className="text-lg font-bold">Apply for Leave</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <select className="h-10 rounded-xl border border-input bg-white/50 px-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-white/5" value={leaveForm.leave_type} onChange={(e) => setLeaveForm({...leaveForm, leave_type: e.target.value})}>
                     <option value="paid">Paid</option>
                     <option value="sick">Sick</option>
                     <option value="unpaid">Unpaid</option>
                   </select>
-                  <Input type="date" value={leaveForm.start_date} onChange={(e) => setLeaveForm({...leaveForm, start_date: e.target.value})} />
-                  <Input type="date" value={leaveForm.end_date} onChange={(e) => setLeaveForm({...leaveForm, end_date: e.target.value})} />
-                  <Input placeholder="Remarks" value={leaveForm.remarks} onChange={(e) => setLeaveForm({...leaveForm, remarks: e.target.value})} />
-                  <Input placeholder="Attachment URL (required for Sick)" value={leaveForm.attachment_url} onChange={(e) => setLeaveForm({...leaveForm, attachment_url: e.target.value})} />
+                  <Input type="date" value={leaveForm.start_date} onChange={(e) => setLeaveForm({...leaveForm, start_date: e.target.value})} className="bg-white/50 dark:bg-white/5" />
+                  <Input type="date" value={leaveForm.end_date} onChange={(e) => setLeaveForm({...leaveForm, end_date: e.target.value})} className="bg-white/50 dark:bg-white/5" />
+                  <Input placeholder="Remarks" value={leaveForm.remarks} onChange={(e) => setLeaveForm({...leaveForm, remarks: e.target.value})} className="bg-white/50 dark:bg-white/5" />
+                  <Input placeholder="Attachment URL (required for Sick)" value={leaveForm.attachment_url} onChange={(e) => setLeaveForm({...leaveForm, attachment_url: e.target.value})} className="bg-white/50 dark:bg-white/5 sm:col-span-2" />
                 </div>
-                <Button className="mt-2" onClick={applyLeave} disabled={leaveSubmitting}>{leaveSubmitting ? "Submitting…" : "Submit Leave"}</Button>
-                {leaveError && <ErrorMessage message={leaveError} />}
-                {leaveSuccess && <SuccessMessage message={leaveSuccess} />}
+                <Button className="mt-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25 hover:opacity-90 active:scale-95" onClick={applyLeave} disabled={leaveSubmitting}>{leaveSubmitting ? "Submitting…" : "Submit Leave"}</Button>
+                <div className="mt-3 space-y-2">
+                  {leaveError && <ErrorMessage message={leaveError} />}
+                  {leaveSuccess && <SuccessMessage message={leaveSuccess} />}
+                </div>
               </Card>
 
-              <Card className="p-6 shadow-sm">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Leave Calendar — {monthLabel(attendanceMonth)}</h3>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>←</Button>
-                    <Button variant="outline" size="sm" onClick={() => changeMonth(1)}>→</Button>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-orange-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-bold">Leave Calendar — {monthLabel(attendanceMonth)}</h3>
+                  <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 p-1">
+                    <Button variant="ghost" size="sm" onClick={() => changeMonth(-1)} className="h-7 w-7 rounded-lg p-0">←</Button>
+                    <Button variant="ghost" size="sm" onClick={() => changeMonth(1)} className="h-7 w-7 rounded-lg p-0">→</Button>
                   </div>
                 </div>
                 {renderLeaveCalendar()}
               </Card>
 
-              <Card className="p-6 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold">Leave List</h3>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-orange-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <h3 className="mb-4 text-sm font-bold">Leave List</h3>
                 {leaveList.length === 0 ? (
-                  <EmptyState icon="📋" message="No leave requests yet." actionLabel="Apply for Leave" onAction={() => setActiveNav("leave")} />
+                  <EmptyState icon="📋" message="No leave requests yet." actionLabel="Apply for Leave" onAction={() => setActiveNav("leave")} accent="orange" />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {leaveList.map((leave) => (
-                      <div key={leave.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                      <div key={leave.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 p-3 transition-all hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm">
                         <div>
-                          <p className="text-sm font-medium">
+                          <p className="text-sm font-bold">
                             {role === "admin" ? (leave.users?.profiles?.full_name || leave.users?.email || "Unknown") : `${leave.leave_type} leave`}
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -2404,8 +2506,8 @@ export default function App() {
                           <Badge className={getStatusBadgeClass(leave.status)}>{leave.status}</Badge>
                           {role === "admin" && leave.status === "pending" && (
                             <>
-                              <Button size="sm" onClick={() => approveLeave(leave.id)} disabled={approvalProcessing === leave.id}>Approve</Button>
-                              <Button size="sm" variant="outline" onClick={() => rejectLeave(leave.id)} disabled={approvalProcessing === leave.id}>Reject</Button>
+                              <Button size="sm" onClick={() => approveLeave(leave.id)} disabled={approvalProcessing === leave.id} className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20 hover:opacity-90 active:scale-95">Approve</Button>
+                              <Button size="sm" variant="outline" onClick={() => rejectLeave(leave.id)} disabled={approvalProcessing === leave.id} className="border-red-500/20 text-red-600 hover:bg-red-500/10 hover:text-red-700">Reject</Button>
                             </>
                           )}
                         </div>
@@ -2420,13 +2522,18 @@ export default function App() {
           {/* PAYSLIP */}
           {activeNav === "payslip" && (
             <div className="space-y-6">
-              <Card className="p-6 shadow-sm">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold">Payslip</h2>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-pink-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-pink">
+                      <Wallet size={22} />
+                    </div>
+                    <h2 className="text-lg font-bold">Payslip</h2>
+                  </div>
                   <div className="flex items-center gap-2">
                     {role === "admin" && (
                       <select
-                        className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        className="h-9 rounded-xl border border-input bg-white/50 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-white/5"
                         value={payslipSelectedUser}
                         onChange={(e) => handlePayslipUserChange(e.target.value)}
                       >
@@ -2443,6 +2550,7 @@ export default function App() {
                       size="sm"
                       onClick={() => window.print()}
                       disabled={!payslipData}
+                      className="rounded-xl border-pink-500/20 bg-pink-500/5 text-pink-700 hover:bg-pink-500/10 hover:text-pink-800 dark:text-pink-300"
                     >
                       <Download size={14} className="mr-1" />
                       Download PDF
@@ -2452,59 +2560,59 @@ export default function App() {
 
                 {payslipLoading ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
                   </div>
                 ) : payslipError ? (
-                  <EmptyState icon="💰" message={payslipError} />
+                  <EmptyState icon="💰" message={payslipError} accent="pink" />
                 ) : !payslipData ? (
-                  <EmptyState icon="💰" message={role === "admin" ? "Select an employee to view their payslip." : "No payslip available yet."} />
+                  <EmptyState icon="💰" message={role === "admin" ? "Select an employee to view their payslip." : "No payslip available yet."} accent="pink" />
                 ) : (
                   (() => {
                     const { earnings, deductions, gross, net } = payslipRows();
                     return (
-                      <div className="space-y-4">
-                        <div className="rounded-lg border border-border/60 p-3">
-                          <p className="text-base font-semibold">{payslipEmployee?.full_name || "Employee"}</p>
+                      <div className="space-y-5">
+                        <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-pink-500/5 to-transparent p-4">
+                          <p className="text-base font-bold">{payslipEmployee?.full_name || "Employee"}</p>
                           <p className="text-xs text-muted-foreground">
                             {payslipEmployee?.job_position || "—"} · {payslipEmployee?.department || "—"}
                           </p>
                           <p className="text-xs text-muted-foreground">Payslip generated on {new Date().toLocaleDateString()}</p>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <div>
-                            <h3 className="mb-2 text-sm font-semibold">Earnings</h3>
-                            <div className="space-y-1 text-sm">
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                          <div className="rounded-2xl border border-border/40 bg-white/50 p-4 dark:bg-white/5">
+                            <h3 className="mb-3 text-sm font-bold">Earnings</h3>
+                            <div className="space-y-2 text-sm">
                               {earnings.map((row) => (
-                                <div key={row.label} className="flex justify-between border-b border-border/40 pb-1.5">
+                                <div key={row.label} className="flex justify-between border-b border-border/30 pb-1.5">
                                   <span className="text-muted-foreground">{row.label}</span>
-                                  <span className="font-medium">{formatCurrency(row.value)}</span>
+                                  <span className="font-bold">{formatCurrency(row.value)}</span>
                                 </div>
                               ))}
-                              <div className="flex justify-between pt-1.5 font-semibold">
+                              <div className="flex justify-between pt-1.5 font-bold">
                                 <span>Gross Earnings</span>
                                 <span>{formatCurrency(gross)}</span>
                               </div>
                             </div>
                           </div>
-                          <div>
-                            <h3 className="mb-2 text-sm font-semibold">Deductions</h3>
-                            <div className="space-y-1 text-sm">
+                          <div className="rounded-2xl border border-border/40 bg-white/50 p-4 dark:bg-white/5">
+                            <h3 className="mb-3 text-sm font-bold">Deductions</h3>
+                            <div className="space-y-2 text-sm">
                               {deductions.map((row) => (
-                                <div key={row.label} className="flex justify-between border-b border-border/40 pb-1.5">
+                                <div key={row.label} className="flex justify-between border-b border-border/30 pb-1.5">
                                   <span className="text-muted-foreground">{row.label}</span>
-                                  <span className="font-medium">{formatCurrency(row.value)}</span>
+                                  <span className="font-bold">{formatCurrency(row.value)}</span>
                                 </div>
                               ))}
-                              <div className="flex justify-between pt-1.5 font-semibold">
+                              <div className="flex justify-between pt-1.5 font-bold">
                                 <span>Total Deductions</span>
                                 <span>{formatCurrency(deductions.reduce((s, r) => s + r.value, 0))}</span>
                               </div>
                             </div>
                           </div>
                         </div>
-                        <div className="flex justify-between rounded-xl bg-primary/10 p-4 text-lg font-bold">
+                        <div className="flex justify-between rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 p-5 text-lg font-bold text-white shadow-lg shadow-pink-500/20">
                           <span>Net Pay</span>
                           <span>{formatCurrency(net)}</span>
                         </div>
@@ -2519,13 +2627,18 @@ export default function App() {
           {/* DIRECTORY (admin only) */}
           {activeNav === "directory" && role === "admin" && (
             <div className="space-y-6">
-              <Card className="p-6 shadow-sm">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold">Employee Directory</h2>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-purple-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-purple">
+                      <Users size={22} />
+                    </div>
+                    <h2 className="text-lg font-bold">Employee Directory</h2>
+                  </div>
                   <div className="relative">
-                    <Search size={14} className="absolute left-2 top-2.5 text-muted-foreground" />
+                    <Search size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
                     <Input
-                      className="pl-7"
+                      className="h-9 rounded-xl border-border/40 bg-white/50 pl-8 dark:bg-white/5"
                       placeholder="Search by name or department…"
                       value={directorySearch}
                       onChange={(e) => setDirectorySearch(e.target.value)}
@@ -2534,9 +2647,9 @@ export default function App() {
                 </div>
                 {directoryLoading ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
                   </div>
                 ) : (() => {
                   const q = directorySearch.toLowerCase();
@@ -2546,25 +2659,25 @@ export default function App() {
                       (emp.department || "").toLowerCase().includes(q)
                   );
                   if (filtered.length === 0) {
-                    return <EmptyState icon="👥" message="No employees found." />;
+                    return <EmptyState icon="👥" message="No employees found." accent="purple" />;
                   }
                   return (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {filtered.map((emp: any) => (
                         <button
                           key={emp.user_id}
                           type="button"
                           onClick={() => setDirectorySelected(emp)}
-                          className="flex w-full items-center gap-3 rounded-lg border border-border/60 p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 p-3 text-left transition-all hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Avatar src={emp.profile_picture_url} name={emp.full_name} size="md" />
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{emp.full_name}</p>
+                            <p className="truncate text-sm font-bold">{emp.full_name}</p>
                             <p className="truncate text-xs text-muted-foreground">
                               {emp.job_position || "—"} · {emp.department || "No department"}
                             </p>
                           </div>
-                          <span className="ml-auto hidden truncate text-xs text-muted-foreground sm:block">{emp.users?.email}</span>
+                          <span className="ml-auto hidden truncate text-xs font-medium text-muted-foreground sm:block">{emp.users?.email}</span>
                         </button>
                       ))}
                     </div>
@@ -2574,32 +2687,32 @@ export default function App() {
 
               {directorySelected && (
                 <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
                   role="dialog"
                   aria-modal="true"
                   onClick={() => setDirectorySelected(null)}
                 >
                   <div
-                    className="df-scale-in w-full max-w-md space-y-4 rounded-2xl border border-border/60 bg-card p-8 shadow-2xl"
+                    className="df-scale-in w-full max-w-md space-y-5 rounded-3xl border border-white/40 bg-white/90 p-8 shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/90"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <Avatar src={directorySelected.profile_picture_url} name={directorySelected.full_name} size="lg" />
                         <div>
-                          <p className="text-base font-semibold">{directorySelected.full_name}</p>
+                          <p className="text-base font-bold">{directorySelected.full_name}</p>
                           <p className="text-xs text-muted-foreground">{directorySelected.job_position || "—"}</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setDirectorySelected(null)} aria-label="Close">
+                      <Button variant="outline" size="sm" onClick={() => setDirectorySelected(null)} aria-label="Close" className="rounded-xl border-border/40">
                         <X size={14} />
                       </Button>
                     </div>
                     <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                      <div><p className="text-xs text-muted-foreground">Department</p><p className="font-medium">{directorySelected.department || "—"}</p></div>
-                      <div><p className="text-xs text-muted-foreground">Location</p><p className="font-medium">{directorySelected.location || "—"}</p></div>
-                      <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Email</p><p className="font-medium">{directorySelected.users?.email || "—"}</p></div>
-                      <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium">{directorySelected.phone || "—"}</p></div>
+                      <div className="rounded-xl border border-border/40 bg-gradient-to-br from-purple-500/5 to-transparent p-3"><p className="text-xs font-medium text-muted-foreground">Department</p><p className="font-bold">{directorySelected.department || "—"}</p></div>
+                      <div className="rounded-xl border border-border/40 bg-gradient-to-br from-purple-500/5 to-transparent p-3"><p className="text-xs font-medium text-muted-foreground">Location</p><p className="font-bold">{directorySelected.location || "—"}</p></div>
+                      <div className="sm:col-span-2 rounded-xl border border-border/40 bg-gradient-to-br from-purple-500/5 to-transparent p-3"><p className="text-xs font-medium text-muted-foreground">Email</p><p className="font-bold">{directorySelected.users?.email || "—"}</p></div>
+                      <div className="rounded-xl border border-border/40 bg-gradient-to-br from-purple-500/5 to-transparent p-3"><p className="text-xs font-medium text-muted-foreground">Phone</p><p className="font-bold">{directorySelected.phone || "—"}</p></div>
                     </div>
                   </div>
                 </div>
@@ -2611,18 +2724,23 @@ export default function App() {
           {activeNav === "announcements" && (
             <div className="space-y-6">
               {role === "admin" && (
-                <Card className="p-6 shadow-sm">
-                  <h3 className="mb-3 text-sm font-semibold">Post Announcement</h3>
-                  <div className="space-y-2">
-                    <Input placeholder="Title" value={announcementForm.title} onChange={(e) => setAnnouncementForm({...announcementForm, title: e.target.value})} />
+                <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-violet-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-purple">
+                      <Megaphone size={22} />
+                    </div>
+                    <h3 className="text-lg font-bold">Post Announcement</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <Input placeholder="Title" value={announcementForm.title} onChange={(e) => setAnnouncementForm({...announcementForm, title: e.target.value})} className="bg-white/50 dark:bg-white/5" />
                     <textarea
-                      className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="w-full rounded-xl border border-input bg-white/50 px-3 py-2 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-white/5"
                       rows={4}
                       placeholder="Content…"
                       value={announcementForm.content}
                       onChange={(e) => setAnnouncementForm({...announcementForm, content: e.target.value})}
                     />
-                    <Button onClick={createAnnouncement} disabled={announcementSubmitting}>
+                    <Button onClick={createAnnouncement} disabled={announcementSubmitting} className="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25 hover:opacity-90 active:scale-95">
                       {announcementSubmitting ? "Publishing…" : "Publish"}
                     </Button>
                     {announcementSuccess && <SuccessMessage message={announcementSuccess} />}
@@ -2630,30 +2748,30 @@ export default function App() {
                 </Card>
               )}
 
-              <Card className="p-6 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold">Announcements</h3>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-violet-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <h3 className="mb-4 text-sm font-bold">Announcements</h3>
                 {announcementsLoading ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-16" />
-                    <Skeleton className="h-16" />
+                    <Skeleton className="h-20" />
+                    <Skeleton className="h-20" />
                   </div>
                 ) : announcementsError ? (
                   <ErrorMessage message={announcementsError} />
                 ) : announcements.length === 0 ? (
-                  <EmptyState icon="📢" message="No announcements yet." />
+                  <EmptyState icon="📢" message="No announcements yet." accent="purple" />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {announcements.map((a: any) => (
-                      <div key={a.id} className="rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/30">
+                      <div key={a.id} className="rounded-2xl border border-border/40 bg-gradient-to-br from-violet-500/5 to-transparent p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold">{a.title}</p>
-                          <span className="shrink-0 text-xs text-muted-foreground">
+                          <p className="text-sm font-bold">{a.title}</p>
+                          <span className="shrink-0 rounded-full bg-violet-500/10 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
                             {new Date(a.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{a.content}</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{a.content}</p>
                         {a.users?.profiles?.full_name && (
-                          <p className="mt-2 text-xs text-muted-foreground">Posted by {a.users.profiles.full_name}</p>
+                          <p className="mt-3 text-xs font-semibold text-violet-600 dark:text-violet-400">Posted by {a.users.profiles.full_name}</p>
                         )}
                       </div>
                     ))}
@@ -2666,12 +2784,17 @@ export default function App() {
           {/* DOCUMENTS */}
           {activeNav === "documents" && (
             <div className="space-y-6">
-              <Card className="p-6 shadow-sm">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold">Documents</h2>
+              <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-cyan-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-teal">
+                      <FolderOpen size={22} />
+                    </div>
+                    <h2 className="text-lg font-bold">Documents</h2>
+                  </div>
                   {role === "admin" && (
                     <select
-                      className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="h-9 rounded-xl border border-input bg-white/50 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-white/5"
                       value={documentsViewUser}
                       onChange={(e) => handleDocumentsViewUserChange(e.target.value)}
                     >
@@ -2683,7 +2806,7 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="mb-3">
+                <div className="mb-4">
                   <input
                     type="file"
                     multiple
@@ -2692,29 +2815,29 @@ export default function App() {
                     onChange={handleDocumentsUpload}
                   />
                   <label htmlFor="documents-upload">
-                    <span className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted/50">
-                      <Upload size={14} />
+                    <span className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-2 text-sm font-semibold text-cyan-700 transition-all hover:bg-cyan-500/10 hover:text-cyan-800 dark:text-cyan-300">
+                      <Upload size={16} />
                       {documentUploading ? "Uploading…" : "Upload Documents"}
                     </span>
                   </label>
-                  {documentMessage && <p className="mt-2"><SuccessMessage message={documentMessage} /></p>}
-                  {documentsError && <p className="mt-2"><ErrorMessage message={documentsError} /></p>}
+                  {documentMessage && <p className="mt-3"><SuccessMessage message={documentMessage} /></p>}
+                  {documentsError && <p className="mt-3"><ErrorMessage message={documentsError} /></p>}
                 </div>
 
                 {documentsLoading ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
                   </div>
                 ) : documents.length === 0 ? (
-                  <EmptyState icon="📁" message="No documents uploaded yet." />
+                  <EmptyState icon="📁" message="No documents uploaded yet." accent="teal" />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {documents.map((doc: any) => (
-                      <div key={doc.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                      <div key={doc.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 p-3 transition-all hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{doc.name}</p>
+                          <p className="truncate text-sm font-bold">{doc.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(doc.created_at).toLocaleDateString()}
                             {role === "admin" && doc.users?.profiles?.full_name ? ` · ${doc.users.profiles.full_name}` : ""}
@@ -2724,7 +2847,7 @@ export default function App() {
                           href={doc.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex shrink-0 items-center gap-1 rounded-md border px-3 py-1.5 text-sm hover:bg-muted/50"
+                          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-3 py-1.5 text-sm font-semibold text-cyan-700 transition-all hover:bg-cyan-500/10 hover:text-cyan-800 dark:text-cyan-300"
                         >
                           <Download size={14} />
                           Open
@@ -2739,32 +2862,37 @@ export default function App() {
 
           {/* NOTIFICATIONS */}
           {activeNav === "notifications" && (
-            <Card className="p-6 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold">Notifications</h2>
+            <Card className="rounded-2xl border border-border/40 bg-white/70 p-6 shadow-lg shadow-teal-500/5 df-card-hover backdrop-blur-xl dark:bg-slate-900/70">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="df-icon-bubble h-12 w-12 rounded-xl df-accent-teal">
+                  <Bell size={22} />
+                </div>
+                <h2 className="text-lg font-bold">Notifications</h2>
+              </div>
               {notificationsLoading ? (
                 <div className="space-y-2">
-                  <Skeleton className="h-12" />
-                  <Skeleton className="h-12" />
-                  <Skeleton className="h-12" />
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
                 </div>
               ) : notifications.length === 0 ? (
-                <EmptyState icon="🔔" message="You're all caught up!" />
+                <EmptyState icon="🔔" message="You're all caught up!" accent="teal" />
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {notifications.map((n) => (
-                    <div key={n.id} className={`flex items-start justify-between rounded-lg border p-3 transition-colors ${n.is_read ? "border-border/60 bg-transparent" : "border-primary/30 bg-primary/5"}`}>
-                      <div className="flex items-start gap-2.5">
-                        {!n.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                    <div key={n.id} className={`flex items-start justify-between rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm ${n.is_read ? "border-border/40 bg-transparent" : "border-teal-500/20 bg-gradient-to-br from-teal-500/5 to-transparent"}`}>
+                      <div className="flex items-start gap-3">
+                        {!n.is_read && <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-r from-teal-400 to-cyan-500 shadow-sm" />}
                         <div>
-                          <p className="text-sm font-medium">{n.title}</p>
-                          {n.body && <p className="text-xs text-muted-foreground">{n.body}</p>}
-                          <p className="mt-1 text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                          <p className="text-sm font-bold">{n.title}</p>
+                          {n.body && <p className="text-xs leading-relaxed text-muted-foreground">{n.body}</p>}
+                          <p className="mt-1 text-xs font-medium text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
                         </div>
                       </div>
                       {n.is_read ? (
-                        <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">Read</span>
+                        <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">Read</span>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => markNotificationRead(n.id)}>Mark as read</Button>
+                        <Button size="sm" variant="outline" onClick={() => markNotificationRead(n.id)} className="rounded-xl border-teal-500/20 bg-teal-500/5 text-teal-700 hover:bg-teal-500/10 hover:text-teal-800 dark:text-teal-300">Mark as read</Button>
                       )}
                     </div>
                   ))}
