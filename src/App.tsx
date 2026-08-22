@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,15 @@ export default function App() {
   const [adminMonthSummary, setAdminMonthSummary] = useState<any>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminError, setAdminError] = useState("");
+
+  // Profile states
+  const [profileData, setProfileData] = useState<any>(null);
+  const [activeProfileTab, setActiveProfileTab] = useState("myProfile");
+  const [editMode, setEditMode] = useState(false);
+  const [profileForm, setProfileForm] = useState<any>({});
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
 
   const manualLogoutRef = useRef(false);
 
@@ -137,6 +146,14 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authState, session, role]);
+
+  // Load profile data on authentication
+  useEffect(() => {
+    if (authState === "authenticated" && session) {
+      loadProfile();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authState, session]);
 
   async function checkUser(userId: string) {
     const { data, error } = await supabase
@@ -301,6 +318,217 @@ export default function App() {
     setSuccess("");
   }
 
+  // ===== Profile Helpers =====
+
+  async function loadProfile() {
+    if (!session) return;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .single();
+
+    if (!error && data) {
+      setProfileData(data);
+      setProfileForm({
+        full_name: data.full_name || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        profile_picture_url: data.profile_picture_url || "",
+        job_position: data.job_position || "",
+        department: data.department || "",
+        location: data.location || "",
+        date_of_birth: data.date_of_birth || "",
+        nationality: data.nationality || "",
+        gender: data.gender || "",
+        marital_status: data.marital_status || "",
+        personal_email: data.personal_email || "",
+        date_of_joining: data.date_of_joining || "",
+        bank_account_number: data.bank_account_number || "",
+        bank_name: data.bank_name || "",
+        ifsc_code: data.ifsc_code || "",
+        uan_no: data.uan_no || "",
+        pan_no: data.pan_no || "",
+        resume_url: data.resume_url || "",
+        about: data.about || "",
+        skills: (data.skills || []).join(", "),
+      });
+    }
+  }
+
+  function handleProfileInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    setProfileForm((prev: any) => ({ ...prev, [name]: value }));
+  }
+
+  function startEditProfile() {
+    setProfileError("");
+    setProfileSuccess("");
+    setEditMode(true);
+  }
+
+  function cancelEditProfile() {
+    setEditMode(false);
+    setProfileError("");
+    setProfileSuccess("");
+    if (profileData) {
+      setProfileForm({
+        full_name: profileData.full_name || "",
+        phone: profileData.phone || "",
+        address: profileData.address || "",
+        profile_picture_url: profileData.profile_picture_url || "",
+        job_position: profileData.job_position || "",
+        department: profileData.department || "",
+        location: profileData.location || "",
+        date_of_birth: profileData.date_of_birth || "",
+        nationality: profileData.nationality || "",
+        gender: profileData.gender || "",
+        marital_status: profileData.marital_status || "",
+        personal_email: profileData.personal_email || "",
+        date_of_joining: profileData.date_of_joining || "",
+        bank_account_number: profileData.bank_account_number || "",
+        bank_name: profileData.bank_name || "",
+        ifsc_code: profileData.ifsc_code || "",
+        uan_no: profileData.uan_no || "",
+        pan_no: profileData.pan_no || "",
+        resume_url: profileData.resume_url || "",
+        about: profileData.about || "",
+        skills: (profileData.skills || []).join(", "),
+      });
+    }
+  }
+
+  async function saveProfile() {
+    if (!session) return;
+    setProfileSaving(true);
+    setProfileError("");
+    setProfileSuccess("");
+
+    let updatePayload: any = {};
+
+    if (role === "admin") {
+      updatePayload = {
+        full_name: profileForm.full_name,
+        phone: profileForm.phone,
+        address: profileForm.address,
+        profile_picture_url: profileForm.profile_picture_url,
+        job_position: profileForm.job_position,
+        department: profileForm.department,
+        location: profileForm.location,
+        date_of_birth: profileForm.date_of_birth || null,
+        nationality: profileForm.nationality,
+        gender: profileForm.gender,
+        marital_status: profileForm.marital_status,
+        personal_email: profileForm.personal_email,
+        date_of_joining: profileForm.date_of_joining,
+        bank_account_number: profileForm.bank_account_number,
+        bank_name: profileForm.bank_name,
+        ifsc_code: profileForm.ifsc_code,
+        uan_no: profileForm.uan_no,
+        pan_no: profileForm.pan_no,
+        resume_url: profileForm.resume_url,
+        about: profileForm.about,
+        skills: profileForm.skills
+          ? profileForm.skills.split(",").map((s: string) => s.trim()).filter(Boolean)
+          : [],
+      };
+    } else {
+      updatePayload = {
+        phone: profileForm.phone,
+        address: profileForm.address,
+        profile_picture_url: profileForm.profile_picture_url,
+      };
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(updatePayload)
+      .eq("user_id", session.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      setProfileError(error.message);
+    } else {
+      setProfileSuccess("Profile updated successfully.");
+      setProfileData(data);
+      setEditMode(false);
+      loadProfile();
+    }
+    setProfileSaving(false);
+  }
+
+  function renderProfileTabContent() {
+    if (!profileData) {
+      return <p className="text-sm text-muted-foreground">No profile found.</p>;
+    }
+
+    switch (activeProfileTab) {
+      case "myProfile":
+        return (
+          <div className="space-y-2">
+            <p><span className="font-medium">Full Name:</span> {profileData.full_name}</p>
+            <p><span className="font-medium">Job Position:</span> {profileData.job_position || "—"}</p>
+            <p><span className="font-medium">Department:</span> {profileData.department || "—"}</p>
+            <p><span className="font-medium">Location:</span> {profileData.location || "—"}</p>
+            <p><span className="font-medium">Phone:</span> {profileData.phone || "—"}</p>
+            <p><span className="font-medium">Address:</span> {profileData.address || "—"}</p>
+          </div>
+        );
+      case "resume":
+        return (
+          <div className="space-y-2">
+            <p><span className="font-medium">Resume URL:</span> {profileData.resume_url || "—"}</p>
+            <p><span className="font-medium">Date of Joining:</span> {profileData.date_of_joining || "—"}</p>
+            <p><span className="font-medium">Bank Account Number:</span> {profileData.bank_account_number || "—"}</p>
+            <p><span className="font-medium">Bank Name:</span> {profileData.bank_name || "—"}</p>
+            <p><span className="font-medium">IFSC Code:</span> {profileData.ifsc_code || "—"}</p>
+            <p><span className="font-medium">UAN No:</span> {profileData.uan_no || "—"}</p>
+            <p><span className="font-medium">PAN No:</span> {profileData.pan_no || "—"}</p>
+          </div>
+        );
+      case "privateInfo":
+        return (
+          <div className="space-y-2">
+            <p><span className="font-medium">Date of Birth:</span> {profileData.date_of_birth || "—"}</p>
+            <p><span className="font-medium">Nationality:</span> {profileData.nationality || "—"}</p>
+            <p><span className="font-medium">Gender:</span> {profileData.gender || "—"}</p>
+            <p><span className="font-medium">Marital Status:</span> {profileData.marital_status || "—"}</p>
+            <p><span className="font-medium">Personal Email:</span> {profileData.personal_email || "—"}</p>
+          </div>
+        );
+      case "skills":
+        return (
+          <div className="space-y-2">
+            <p><span className="font-medium">Skills:</span></p>
+            {profileData.skills && profileData.skills.length > 0 ? (
+              <ul className="list-disc pl-5">
+                {profileData.skills.map((skill: string, idx: number) => (
+                  <li key={idx}>{skill}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground">No skills listed.</p>
+            )}
+          </div>
+        );
+      case "about":
+        return (
+          <div className="space-y-2">
+            <p className="text-sm whitespace-pre-wrap">{profileData.about || "No about information."}</p>
+          </div>
+        );
+      case "salary":
+        return (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Salary details will be available in Phase 4.</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  }
+
   // ===== Employee Attendance Helpers =====
 
   function getLocalDateString() {
@@ -443,7 +671,6 @@ export default function App() {
 
     const today = getLocalDateString();
 
-    // Fetch today's attendance with user + profile, using explicit FK for profiles
     const { data: todayData, error: todayError } = await supabase
       .from("attendance")
       .select(`
@@ -471,7 +698,6 @@ export default function App() {
 
     setAdminTodayList(todayData || []);
 
-    // Fetch monthly summary counts
     const { start, end } = getMonthStartEnd(attendanceMonth);
     const { data: monthData, error: monthError } = await supabase
       .from("attendance")
@@ -709,7 +935,7 @@ export default function App() {
       </p>
 
       <div className="w-full max-w-2xl space-y-4">
-        {/* Attendance card (current user check-in/out) */}
+        {/* Attendance card */}
         <Card className="p-4">
           <h2 className="mb-3 text-sm font-semibold">My Attendance Today</h2>
           {!todayAttendance ? (
@@ -778,6 +1004,89 @@ export default function App() {
               {checkOutError && <p className="text-sm text-red-500">{checkOutError}</p>}
               {checkOutMessage && <p className="text-sm text-green-600">{checkOutMessage}</p>}
             </div>
+          )}
+        </Card>
+
+        {/* Profile card */}
+        <Card className="p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Profile</h2>
+            {!editMode ? (
+              <Button variant="outline" size="sm" onClick={startEditProfile}>
+                Edit Profile
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={cancelEditProfile}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={saveProfile} disabled={profileSaving}>
+                  {profileSaving ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {profileError && <p className="text-sm text-red-500">{profileError}</p>}
+          {profileSuccess && <p className="text-sm text-green-600">{profileSuccess}</p>}
+
+          {/* Tabs */}
+          <div className="mb-3 flex flex-wrap gap-1">
+            {[
+              { key: "myProfile", label: "My Profile" },
+              { key: "resume", label: "Resume" },
+              { key: "privateInfo", label: "Private Info" },
+              { key: "skills", label: "Skills" },
+              { key: "about", label: "About" },
+              ...(role === "admin" ? [{ key: "salary", label: "Salary Info" }] : []),
+            ].map((tab) => (
+              <Button
+                key={tab.key}
+                variant={activeProfileTab === tab.key ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveProfileTab(tab.key)}
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </div>
+
+          {editMode ? (
+            <div className="space-y-2">
+              {role === "admin" ? (
+                <>
+                  <Input name="full_name" placeholder="Full Name" value={profileForm.full_name} onChange={handleProfileInputChange} />
+                  <Input name="phone" placeholder="Phone" value={profileForm.phone} onChange={handleProfileInputChange} />
+                  <Input name="address" placeholder="Address" value={profileForm.address} onChange={handleProfileInputChange} />
+                  <Input name="profile_picture_url" placeholder="Profile Picture URL" value={profileForm.profile_picture_url} onChange={handleProfileInputChange} />
+                  <Input name="job_position" placeholder="Job Position" value={profileForm.job_position} onChange={handleProfileInputChange} />
+                  <Input name="department" placeholder="Department" value={profileForm.department} onChange={handleProfileInputChange} />
+                  <Input name="location" placeholder="Location" value={profileForm.location} onChange={handleProfileInputChange} />
+                  <Input name="date_of_birth" placeholder="Date of Birth (YYYY-MM-DD)" value={profileForm.date_of_birth} onChange={handleProfileInputChange} />
+                  <Input name="nationality" placeholder="Nationality" value={profileForm.nationality} onChange={handleProfileInputChange} />
+                  <Input name="gender" placeholder="Gender" value={profileForm.gender} onChange={handleProfileInputChange} />
+                  <Input name="marital_status" placeholder="Marital Status" value={profileForm.marital_status} onChange={handleProfileInputChange} />
+                  <Input name="personal_email" placeholder="Personal Email" value={profileForm.personal_email} onChange={handleProfileInputChange} />
+                  <Input name="date_of_joining" placeholder="Date of Joining (YYYY-MM-DD)" value={profileForm.date_of_joining} onChange={handleProfileInputChange} />
+                  <Input name="bank_account_number" placeholder="Bank Account Number" value={profileForm.bank_account_number} onChange={handleProfileInputChange} />
+                  <Input name="bank_name" placeholder="Bank Name" value={profileForm.bank_name} onChange={handleProfileInputChange} />
+                  <Input name="ifsc_code" placeholder="IFSC Code" value={profileForm.ifsc_code} onChange={handleProfileInputChange} />
+                  <Input name="uan_no" placeholder="UAN No" value={profileForm.uan_no} onChange={handleProfileInputChange} />
+                  <Input name="pan_no" placeholder="PAN No" value={profileForm.pan_no} onChange={handleProfileInputChange} />
+                  <Input name="resume_url" placeholder="Resume URL" value={profileForm.resume_url} onChange={handleProfileInputChange} />
+                  <Input name="about" placeholder="About" value={profileForm.about} onChange={handleProfileInputChange} />
+                  <Input name="skills" placeholder="Skills (comma separated)" value={profileForm.skills} onChange={handleProfileInputChange} />
+                </>
+              ) : (
+                <>
+                  <Input name="phone" placeholder="Phone" value={profileForm.phone} onChange={handleProfileInputChange} />
+                  <Input name="address" placeholder="Address" value={profileForm.address} onChange={handleProfileInputChange} />
+                  <Input name="profile_picture_url" placeholder="Profile Picture URL" value={profileForm.profile_picture_url} onChange={handleProfileInputChange} />
+                </>
+              )}
+            </div>
+          ) : (
+            renderProfileTabContent()
           )}
         </Card>
 
@@ -867,18 +1176,14 @@ export default function App() {
                 <p className="text-sm text-muted-foreground">Loading…</p>
               ) : adminMonthSummary ? (
                 <div className="flex flex-wrap gap-4">
-                  {Object.entries(adminMonthSummary as Record<string, unknown>).map(([status, count]) => {
-                    const summaryCount = typeof count === "number" || typeof count === "string" ? count : 0;
-
-                    return (
-                      <div key={status} className="flex items-center gap-2">
-                        <Badge className={getStatusBadgeClass(status)}>
-                          {status}
-                        </Badge>
-                        <span className="text-sm font-medium">{summaryCount}</span>
-                      </div>
-                    );
-                  })}
+                  {Object.entries(adminMonthSummary).map(([status, count]) => (
+                    <div key={status} className="flex items-center gap-2">
+                      <Badge className={getStatusBadgeClass(status)}>
+                        {status}
+                      </Badge>
+                      <span className="text-sm font-medium">{count}</span>
+                    </div>
+                  ))}
                   {Object.keys(adminMonthSummary).length === 0 && (
                     <p className="text-sm text-muted-foreground">No records this month.</p>
                   )}
@@ -906,10 +1211,9 @@ export default function App() {
           </div>
         </Card>
 
-        {/* Input and Button (keep for now) */}
+        {/* Logout */}
         <Card className="p-4">
-          <h2 className="mb-3 text-sm font-semibold">Input and Button</h2>
-          <Input placeholder="Sample input" className="mb-3" />
+          <h2 className="mb-3 text-sm font-semibold">Account</h2>
           <Button variant="outline" onClick={handleLogout}>Log out</Button>
         </Card>
       </div>
